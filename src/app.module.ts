@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validateEnv } from './config/env.validation';
 import { CryptoModule } from './shared/crypto/crypto.module';
+import { DatabaseModule } from './shared/database/database.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { CryptoModule } from './shared/crypto/crypto.module';
       cache: true,
       validate: validateEnv,
     }),
+    DatabaseModule,
     CryptoModule,
   ],
   controllers: [AppController],
