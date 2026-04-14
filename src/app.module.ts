@@ -6,6 +6,7 @@ import { validateEnv } from './config/env.validation';
 import { CryptoModule } from './shared/crypto/crypto.module';
 import { DatabaseModule } from './shared/database/database.module';
 import { S3Module } from './shared/s3/s3.module';
+import { throttlerConfig } from './throttler/throttler.config';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { S3Module } from './shared/s3/s3.module';
     DatabaseModule,
     CryptoModule,
     S3Module,
+    throttlerConfig,
   ],
   controllers: [AppController],
   providers: [AppService],
