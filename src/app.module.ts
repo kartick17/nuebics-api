@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { validateEnv } from './config/env.validation';
 import { CryptoModule } from './shared/crypto/crypto.module';
 import { DatabaseModule } from './shared/database/database.module';
+import { S3Module } from './shared/s3/s3.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DatabaseModule } from './shared/database/database.module';
     }),
     DatabaseModule,
     CryptoModule,
+    S3Module,
   ],
   controllers: [AppController],
   providers: [AppService],
