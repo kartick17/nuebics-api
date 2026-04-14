@@ -37,15 +37,15 @@ describe('JwtAuthGuard', () => {
   });
 
   it('rejects missing Authorization', async () => {
-    await expect(guard.canActivate(makeCtx())).resolves.toBe(false);
+    await expect(guard.canActivate(makeCtx())).rejects.toThrow('Unauthorized');
   });
 
   it('rejects non-Bearer', async () => {
-    await expect(guard.canActivate(makeCtx('Basic abc'))).resolves.toBe(false);
+    await expect(guard.canActivate(makeCtx('Basic abc'))).rejects.toThrow('Unauthorized');
   });
 
   it('rejects invalid token', async () => {
-    await expect(guard.canActivate(makeCtx('Bearer garbage'))).resolves.toBe(false);
+    await expect(guard.canActivate(makeCtx('Bearer garbage'))).rejects.toThrow('Unauthorized');
   });
 
   it('accepts valid encrypted token and attaches req.user', async () => {
