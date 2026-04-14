@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.validation';
 
@@ -9,6 +9,9 @@ export class CronSecretGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
     const secret = req.headers['x-cron-secret'];
-    return secret === this.config.get('CRON_SECRET', { infer: true });
+    if (secret !== this.config.get('CRON_SECRET', { infer: true })) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    return true;
   }
 }

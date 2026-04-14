@@ -12,6 +12,7 @@ import { FoldersModule } from './folders/folders.module';
 import { FilesModule } from './files/files.module';
 import { TrashModule } from './trash/trash.module';
 import { FavouritesModule } from './favourites/favourites.module';
+import { CronModule } from './cron/cron.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { FavouritesModule } from './favourites/favourites.module';
     FilesModule,
     TrashModule,
     FavouritesModule,
+    CronModule,
   ],
   controllers: [AppController],
   providers: [AppService],
