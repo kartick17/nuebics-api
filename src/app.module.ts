@@ -8,6 +8,7 @@ import { CryptoModule } from './shared/crypto/crypto.module';
 import { DatabaseModule } from './shared/database/database.module';
 import { S3Module } from './shared/s3/s3.module';
 import { throttlerConfig } from './throttler/throttler.config';
+import { FoldersModule } from './folders/folders.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { throttlerConfig } from './throttler/throttler.config';
     S3Module,
     throttlerConfig,
     AuthModule,
+    FoldersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
