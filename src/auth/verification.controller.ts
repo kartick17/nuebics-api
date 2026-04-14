@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Post, Res, UseGuards, UsePipes } from '@nestjs/common';
 import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { VerificationService } from './verification.service';
 import { CookieService } from './cookie.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { UserChannelThrottlerGuard } from '../common/guards/user-channel-throttler.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { TokenPayload } from '../shared/crypto/crypto.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -56,9 +58,10 @@ export class VerificationController {
   }
 
   @Post('resend-otp')
+  @UseGuards(JwtAuthGuard, UserChannelThrottlerGuard)
+  @Throttle({ resend: { limit: 3, ttl: 15 * 60 * 1000 } })
   @UsePipes(new ZodValidationPipe(resendOtpSchema))
   async resend(@CurrentUser() auth: TokenPayload, @Body() dto: ResendOtpInput) {
-    // NOTE: Per-user+channel throttling is implemented in a later task (Task 26).
     const { already } = await this.verification.resendOtp(auth.userId, dto.channel);
     return already
       ? { message: `${dto.channel === 'email' ? 'Email' : 'Phone'} already verified.` }
