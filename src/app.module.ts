@@ -11,6 +11,7 @@ import { throttlerConfig } from './throttler/throttler.config';
 import { FoldersModule } from './folders/folders.module';
 import { FilesModule } from './files/files.module';
 import { TrashModule } from './trash/trash.module';
+import { FavouritesModule } from './favourites/favourites.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { TrashModule } from './trash/trash.module';
     FoldersModule,
     FilesModule,
     TrashModule,
+    FavouritesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
