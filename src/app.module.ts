@@ -10,6 +10,7 @@ import { S3Module } from './shared/s3/s3.module';
 import { throttlerConfig } from './throttler/throttler.config';
 import { FoldersModule } from './folders/folders.module';
 import { FilesModule } from './files/files.module';
+import { TrashModule } from './trash/trash.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { FilesModule } from './files/files.module';
     AuthModule,
     FoldersModule,
     FilesModule,
+    TrashModule,
   ],
   controllers: [AppController],
   providers: [AppService],
