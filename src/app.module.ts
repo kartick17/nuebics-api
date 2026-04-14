@@ -9,6 +9,7 @@ import { DatabaseModule } from './shared/database/database.module';
 import { S3Module } from './shared/s3/s3.module';
 import { throttlerConfig } from './throttler/throttler.config';
 import { FoldersModule } from './folders/folders.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { FoldersModule } from './folders/folders.module';
     throttlerConfig,
     AuthModule,
     FoldersModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
