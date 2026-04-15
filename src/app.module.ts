@@ -13,6 +13,7 @@ import { FilesModule } from './files/files.module';
 import { TrashModule } from './trash/trash.module';
 import { FavouritesModule } from './favourites/favourites.module';
 import { CronModule } from './cron/cron.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CronModule } from './cron/cron.module';
       validate: validateEnv,
     }),
     DatabaseModule,
+    HealthModule,
     CryptoModule,
     S3Module,
     throttlerConfig,
