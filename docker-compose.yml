@@ -1,0 +1,57 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: nuebics-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  mongo-test:
+    image: mongo:7
+    container_name: nuebics-mongo-test
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    tmpfs:
+      - /data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  api:
+    build:
+      context: .
+      target: dev
+    container_name: nuebics-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/nuebics
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./src:/app/src
+      - ./test:/app/test
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.build.json:/app/tsconfig.build.json
+      - ./nest-cli.json:/app/nest-cli.json
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
