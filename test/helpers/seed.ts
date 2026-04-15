@@ -65,7 +65,7 @@ export async function createFile(
   const up = await authed(app, session)
     .post("/api/files/upload")
     .send({ fileName: name, fileType: "text/plain", fileSize: size, folderId })
-    .expect(200);
+    .expect(201);
   const conf = await authed(app, session)
     .post("/api/files/confirm")
     .send({
