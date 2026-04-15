@@ -1,0 +1,24 @@
+services:
+  api-test:
+    build:
+      context: .
+      target: dev
+    image: nuebics-api:dev
+    container_name: nuebics-api-test
+    env_file:
+      - .env.test
+    environment:
+      NODE_ENV: test
+      MONGODB_URI: mongodb://mongo-test:27017/nuebics-test
+      TEST_MONGODB_URI: mongodb://mongo-test:27017/nuebics-test
+    volumes:
+      - ./src:/app/src
+      - ./test:/app/test
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.build.json:/app/tsconfig.build.json
+      - ./nest-cli.json:/app/nest-cli.json
+      - /app/node_modules
+    depends_on:
+      mongo-test:
+        condition: service_healthy
+    command: ["yarn", "test:e2e"]
