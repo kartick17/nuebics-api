@@ -1,0 +1,102 @@
+import { INestApplication } from "@nestjs/common";
+import request from "supertest";
+import { createTestApp, closeTestApp } from "../helpers/app";
+import { connectTestDb, truncateAll, disconnectTestDb } from "../helpers/db";
+import { resetS3Mock } from "../helpers/s3-mock";
+import { seedUsers, userA } from "../helpers/seed";
+import { loginUser, authed } from "../helpers/auth";
+
+let app: INestApplication;
+
+beforeAll(async () => {
+  await connectTestDb();
+  app = await createTestApp();
+});
+beforeEach(async () => {
+  await truncateAll();
+  resetS3Mock();
+  await seedUsers(app);
+});
+afterAll(async () => {
+  await closeTestApp(app);
+  await disconnectTestDb();
+});
+
+describe("Auth — Happy", () => {
+  it("AUTH-HAPPY-001: POST /api/auth/signup creates account", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/signup")
+      .send({
+        name: "New User",
+        email: "new@test.local",
+        phone: "+15550009999",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      })
+      .expect(201);
+    expect(res.body).toEqual({ ok: true, message: "Account created successfully" });
+    expect(res.body).not.toHaveProperty("password");
+    expect(res.body).not.toHaveProperty("passwordHash");
+  });
+
+  it("AUTH-HAPPY-002: POST /api/auth/login returns session cookies", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ identifier: userA.email, password: userA.password })
+      .expect(200);
+    expect(res.body).toEqual({ ok: true, message: "Logged in successfully" });
+    const setCookie = res.headers["set-cookie"] as unknown as string[];
+    expect(setCookie.some((c) => c.startsWith("access_token="))).toBe(true);
+    expect(setCookie.some((c) => c.startsWith("refresh_token="))).toBe(true);
+    expect(setCookie.some((c) => c.startsWith("user_details="))).toBe(true);
+  });
+
+  it("AUTH-HAPPY-002b: login accepts phone as identifier", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ identifier: userA.phone, password: userA.password })
+      .expect(200);
+    expect(res.body.ok).toBe(true);
+  });
+
+  it("AUTH-HAPPY-003: POST /api/auth/refresh rotates tokens", async () => {
+    const session = await loginUser(app, userA);
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", [`refresh_token=${encodeURIComponent(session.refreshCookie)}`])
+      .expect(200);
+    expect(res.body).toMatchObject({
+      ok: true,
+      message: "Token refreshed",
+      token: expect.any(String),
+    });
+    const setCookie = res.headers["set-cookie"] as unknown as string[];
+    expect(setCookie.some((c) => c.startsWith("access_token="))).toBe(true);
+  });
+
+  it("AUTH-HAPPY-004: POST /api/auth/logout clears cookies", async () => {
+    const session = await loginUser(app, userA);
+    const res = await authed(app, session).post("/api/auth/logout").expect(200);
+    expect(res.body).toEqual({ ok: true, message: "Logged out successfully" });
+    const setCookie = res.headers["set-cookie"] as unknown as string[];
+    expect(
+      setCookie.some((c) => c.includes("access_token=") && /(Max-Age=0|Expires=)/.test(c)),
+    ).toBe(true);
+  });
+
+  it("AUTH-HAPPY-005: GET /api/auth/me returns authenticated user", async () => {
+    const session = await loginUser(app, userA);
+    const res = await authed(app, session).get("/api/auth/me").expect(200);
+    expect(res.body).toMatchObject({
+      ok: true,
+      user: {
+        id: expect.any(String),
+        name: userA.name,
+        email: userA.email,
+        phone: userA.phone,
+        isEmailVerified: false,
+        isPhoneVerified: false,
+      },
+    });
+  });
+});

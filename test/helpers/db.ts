@@ -9,9 +9,12 @@ export async function connectTestDb() {
 }
 
 export async function truncateAll() {
-  const collections = mongoose.connection.collections;
-  for (const key of Object.keys(collections)) {
-    await collections[key].deleteMany({});
+  const db = mongoose.connection.db;
+  if (!db) return;
+  const collections = await db.listCollections().toArray();
+  for (const { name } of collections) {
+    if (name.startsWith("system.")) continue;
+    await db.collection(name).deleteMany({});
   }
 }
 
