@@ -1,0 +1,431 @@
+{
+  "info": {
+    "name": "NueVault API",
+    "_postman_id": "nuevault-api-v1",
+    "description": "Postman collection for the NueVault encrypted file vault API (Next.js App Router). Uses Bearer token auth on protected routes; tokens are issued as httpOnly cookies on /auth/login — copy the access_token cookie value into the `access_token` environment variable to use Bearer auth in Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{access_token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string", "description": "Encrypted JWT access token (expires 10m). Grab from the access_token cookie after /auth/login." },
+    { "key": "refresh_token", "value": "", "type": "string", "description": "Refresh token (expires 5d). Read from cookie after login." },
+    { "key": "cron_secret", "value": "", "type": "string" },
+    { "key": "file_id", "value": "", "type": "string" },
+    { "key": "folder_id", "value": "", "type": "string" },
+    { "key": "s3_key", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Signup, login, session, OTP verification, and vault-password endpoints.",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/signup", "host": ["{{base_url}}"], "path": ["api", "auth", "signup"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"+15555550123\",\n  \"password\": \"supersecret123\",\n  \"confirmPassword\": \"supersecret123\"\n}"
+            },
+            "description": "Create a new user account. Email and/or phone required; generates OTPs for verification. Rate-limited to 10 signups per IP per hour."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"jane@example.com\",\n  \"password\": \"supersecret123\"\n}"
+            },
+            "description": "Authenticate with email or phone + password. Sets `access_token` (10m) and `refresh_token` (5d) httpOnly cookies. Rate-limited to 10 attempts per IP per 15 minutes."
+          }
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/refresh", "host": ["{{base_url}}"], "path": ["api", "auth", "refresh"] },
+            "description": "Issues a new access token from the `refresh_token` cookie. Rotates the refresh token if within 1 day of expiry."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] },
+            "description": "Clears all authentication and user-detail cookies."
+          }
+        },
+        {
+          "name": "Me (current user)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/me", "host": ["{{base_url}}"], "path": ["api", "auth", "me"] },
+            "description": "Returns the authenticated user's profile (id, name, email, phone, verification flags)."
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/resend-otp", "host": ["{{base_url}}"], "path": ["api", "auth", "resend-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"email\"\n}"
+            },
+            "description": "Resend OTP for email or phone verification. `channel` must be `email` or `phone`. Rate-limited to 3 per user per channel per 15 minutes."
+          }
+        },
+        {
+          "name": "Verify email (status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/verify-email", "host": ["{{base_url}}"], "path": ["api", "auth", "verify-email"] },
+            "description": "Returns `{ email, isVerified }` for the authenticated user."
+          }
+        },
+        {
+          "name": "Verify email (submit OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/verify-email", "host": ["{{base_url}}"], "path": ["api", "auth", "verify-email"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "description": "Verify email with 6-digit OTP; marks `isEmailVerified = true`."
+          }
+        },
+        {
+          "name": "Verify phone (status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/verify-phone", "host": ["{{base_url}}"], "path": ["api", "auth", "verify-phone"] },
+            "description": "Returns `{ phone, isVerified }` for the authenticated user."
+          }
+        },
+        {
+          "name": "Verify phone (submit OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/verify-phone", "host": ["{{base_url}}"], "path": ["api", "auth", "verify-phone"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "description": "Verify phone with 6-digit OTP; marks `isPhoneVerified = true`."
+          }
+        },
+        {
+          "name": "Vault password (get verifier)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/vault-password", "host": ["{{base_url}}"], "path": ["api", "auth", "vault-password"] },
+            "description": "Returns the stored encrypted vault-password verifier used for client-side AES-256-GCM key derivation."
+          }
+        },
+        {
+          "name": "Vault password (set)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/vault-password", "host": ["{{base_url}}"], "path": ["api", "auth", "vault-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"encryptedToken\": \"<client-encrypted-vault-token>\"\n}"
+            },
+            "description": "Stores the client-encrypted vault password on first setup; returns existing verifier if already set."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Folders",
+      "item": [
+        {
+          "name": "List folders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/folders?parentId=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "folders"],
+              "query": [{ "key": "parentId", "value": "", "description": "Parent folder id; omit or empty for root" }]
+            },
+            "description": "List folders under a given parent (or root if `parentId` is omitted), sorted by name."
+          }
+        },
+        {
+          "name": "Create folder",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/folders", "host": ["{{base_url}}"], "path": ["api", "files", "folders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Documents\",\n  \"parentId\": null\n}"
+            },
+            "description": "Create a folder under `parentId` (null = root). Rejects OS-reserved names and duplicates within parent."
+          }
+        },
+        {
+          "name": "Get folder + breadcrumbs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/files/folders/{{folder_id}}", "host": ["{{base_url}}"], "path": ["api", "files", "folders", "{{folder_id}}"] },
+            "description": "Returns the folder and the full breadcrumb chain up to root."
+          }
+        },
+        {
+          "name": "Rename / move folder",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/folders/{{folder_id}}", "host": ["{{base_url}}"], "path": ["api", "files", "folders", "{{folder_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Renamed Folder\",\n  \"parentId\": null\n}"
+            },
+            "description": "Rename and/or move a folder. Prevents self-nesting, circular references, and duplicate names in the target parent."
+          }
+        },
+        {
+          "name": "Delete folder (to trash)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/files/folders/{{folder_id}}", "host": ["{{base_url}}"], "path": ["api", "files", "folders", "{{folder_id}}"] },
+            "description": "Soft-deletes the folder and recursively moves all contents to trash."
+          }
+        },
+        {
+          "name": "Toggle folder favourite",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/folders/{{folder_id}}/favourite", "host": ["{{base_url}}"], "path": ["api", "files", "folders", "{{folder_id}}", "favourite"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFavourite\": true\n}"
+            },
+            "description": "Toggle favourite status for a folder."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "List files in folder",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/files?folderId=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "files"],
+              "query": [{ "key": "folderId", "value": "", "description": "Folder id; omit or empty for root" }]
+            },
+            "description": "List active files in a folder (or root if `folderId` is omitted), sorted by `updatedAt` desc."
+          }
+        },
+        {
+          "name": "Rename / move file",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/files/{{file_id}}", "host": ["{{base_url}}"], "path": ["api", "files", "files", "{{file_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"renamed.pdf\",\n  \"folderId\": null\n}"
+            },
+            "description": "Rename and/or move a file to another folder (`null` = root)."
+          }
+        },
+        {
+          "name": "Delete file (to trash)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/files/files/{{file_id}}", "host": ["{{base_url}}"], "path": ["api", "files", "files", "{{file_id}}"] },
+            "description": "Soft-deletes the file (moves to trash). S3 object is retained until purge."
+          }
+        },
+        {
+          "name": "Toggle file favourite",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/files/{{file_id}}/favourite", "host": ["{{base_url}}"], "path": ["api", "files", "files", "{{file_id}}", "favourite"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFavourite\": true\n}"
+            },
+            "description": "Toggle favourite status for a file."
+          }
+        },
+        {
+          "name": "Request upload URL",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/upload", "host": ["{{base_url}}"], "path": ["api", "files", "upload"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"report.pdf\",\n  \"fileType\": \"application/pdf\",\n  \"fileSize\": 102400,\n  \"folderId\": null\n}"
+            },
+            "description": "Step 1 of upload: returns `{ presignedUrl, key, folderId }`. Client PUTs the file bytes (optionally AES-256-GCM encrypted) directly to S3 using the URL (5 min expiry)."
+          }
+        },
+        {
+          "name": "Confirm upload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/confirm", "host": ["{{base_url}}"], "path": ["api", "files", "confirm"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"{{s3_key}}\",\n  \"fileName\": \"report.pdf\",\n  \"fileType\": \"application/pdf\",\n  \"fileSize\": 102400,\n  \"folderId\": null\n}"
+            },
+            "description": "Step 2 of upload: verifies the S3 object exists with the expected size and creates the MongoDB file record. Deletes the S3 object if the upload is incomplete."
+          }
+        },
+        {
+          "name": "Download single file URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/files/download/{{file_id}}", "host": ["{{base_url}}"], "path": ["api", "files", "download", "{{file_id}}"] },
+            "description": "Returns `{ url }` — a presigned S3 GET URL (5 min expiry) for the file."
+          }
+        },
+        {
+          "name": "Download multiple (batch)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/download", "host": ["{{base_url}}"], "path": ["api", "files", "download"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\"{{file_id}}\"],\n  \"folderIds\": [\"{{folder_id}}\"]\n}"
+            },
+            "description": "Returns presigned GET URLs plus folder-relative paths for bulk download/zipping. Capped at `NEXT_PUBLIC_MAX_FILES` items (default 50)."
+          }
+        },
+        {
+          "name": "Folder contents (composite)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/contents?folderId=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "contents"],
+              "query": [{ "key": "folderId", "value": "", "description": "Folder id; omit for root" }]
+            },
+            "description": "Single call returning `{ folders (with itemCount), files, breadcrumbs }` for rendering a file-manager view."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favourites",
+      "item": [
+        {
+          "name": "List favourites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/files/favourites", "host": ["{{base_url}}"], "path": ["api", "files", "favourites"] },
+            "description": "Returns all favourited files and folders for the current user."
+          }
+        },
+        {
+          "name": "Bulk toggle favourites",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/files/favourites/bulk", "host": ["{{base_url}}"], "path": ["api", "files", "favourites", "bulk"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\"{{file_id}}\"],\n  \"folderIds\": [\"{{folder_id}}\"],\n  \"isFavourite\": true\n}"
+            },
+            "description": "Set `isFavourite` on many files and/or folders in one call. Returns counts of updated items."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trash",
+      "item": [
+        {
+          "name": "List trash",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/files/trash", "host": ["{{base_url}}"], "path": ["api", "files", "trash"] },
+            "description": "Returns root-level trashed folders (with `childCount`) and files, plus `retentionDays` before auto-purge."
+          }
+        },
+        {
+          "name": "Restore from trash",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/trash/restore/{{file_id}}?type=file",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "trash", "restore", "{{file_id}}"],
+              "query": [{ "key": "type", "value": "file", "description": "`file` or `folder`" }]
+            },
+            "description": "Restore a trashed item. For folders, recursively restores all trashed descendants."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cron",
+      "item": [
+        {
+          "name": "Purge old trash",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "x-cron-secret", "value": "{{cron_secret}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/cron/purge-trash", "host": ["{{base_url}}"], "path": ["api", "cron", "purge-trash"] },
+            "description": "Permanently deletes trash items older than the retention window. Authenticated via the `x-cron-secret` header (must match `CRON_SECRET` env var) — call from an external scheduler."
+          }
+        }
+      ]
+    }
+  ]
+}
