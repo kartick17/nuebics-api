@@ -48,10 +48,11 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./tsconfig.build.json:/app/tsconfig.build.json
       - ./nest-cli.json:/app/nest-cli.json
-      - /app/node_modules
+      - node_modules:/app/node_modules
     depends_on:
       mongo:
         condition: service_healthy
 
 volumes:
   mongo-data:
+  node_modules:
