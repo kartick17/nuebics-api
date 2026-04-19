@@ -13,6 +13,7 @@ import { signupSchema } from './dto/signup.schema';
 import type { SignupInput } from './dto/signup.schema';
 import { loginSchema } from './dto/login.schema';
 import type { LoginInput } from './dto/login.schema';
+import { toUserDetails } from './user-details';
 
 @Controller('auth')
 export class AuthController {
@@ -34,12 +35,15 @@ export class AuthController {
   @HttpCode(200)
   @Throttle({ login: { limit: 10, ttl: 15 * 60 * 1000 } })
   @UsePipes(new ZodValidationPipe(loginSchema))
-  async login(@Body() dto: LoginInput, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() dto: LoginInput) {
     const { user, accessToken, refreshToken } = await this.auth.login(dto);
-    this.cookies.setAccessCookie(res, accessToken);
-    this.cookies.setRefreshCookie(res, refreshToken);
-    this.cookies.setUserCookie(res, user);
-    return { ok: true, message: 'Logged in successfully' };
+    return {
+      ok: true,
+      message: 'Logged in successfully',
+      user_details: toUserDetails(user),
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
   }
 
   @Post('logout')

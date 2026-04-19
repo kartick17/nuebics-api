@@ -49,7 +49,7 @@ describe("Auth — Security", () => {
     const session = await loginUser(app, userA);
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
-      .set("Cookie", [`refresh_token=${encodeURIComponent(session.accessCookie)}`])
+      .set("Cookie", [`refresh_token=${encodeURIComponent(session.bearer)}`])
       .expect(401);
     expect(res.body.ok).toBe(false);
   });

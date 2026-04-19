@@ -65,12 +65,7 @@ describe("Auth — Chaos", () => {
       .post("/api/auth/login")
       .send({ identifier: "xss@test.local", password: "Password123!" })
       .expect(200);
-    const setCookie = login.headers["set-cookie"] as unknown as string[];
-    const rawAccess = setCookie
-      .find((c) => c.startsWith("access_token="))!
-      .split(";")[0]
-      .substring("access_token=".length);
-    const accessToken = decodeURIComponent(rawAccess);
+    const accessToken = login.body.access_token;
     const me = await request(app.getHttpServer())
       .get("/api/auth/me")
       .set("Authorization", `Bearer ${accessToken}`)

@@ -39,16 +39,25 @@ describe("Auth — Happy", () => {
     expect(res.body).not.toHaveProperty("passwordHash");
   });
 
-  it("AUTH-HAPPY-002: POST /api/auth/login returns session cookies", async () => {
+  it("AUTH-HAPPY-002: POST /api/auth/login returns tokens in body", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
       .send({ identifier: userA.email, password: userA.password })
       .expect(200);
-    expect(res.body).toEqual({ ok: true, message: "Logged in successfully" });
-    const setCookie = res.headers["set-cookie"] as unknown as string[];
-    expect(setCookie.some((c) => c.startsWith("access_token="))).toBe(true);
-    expect(setCookie.some((c) => c.startsWith("refresh_token="))).toBe(true);
-    expect(setCookie.some((c) => c.startsWith("user_details="))).toBe(true);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.message).toBe("Logged in successfully");
+    expect(res.body.access_token).toMatch(/^ey/);
+    expect(res.body.refresh_token).toMatch(/^ey/);
+    expect(res.body.user_details).toMatchObject({
+      id: expect.any(String),
+      name: userA.name,
+      email: userA.email,
+      phone: userA.phone,
+      isEmailVerified: false,
+      isPhoneVerified: false,
+      vaultCredentialVerifier: false,
+    });
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
   it("AUTH-HAPPY-002b: login accepts phone as identifier", async () => {
@@ -63,7 +72,7 @@ describe("Auth — Happy", () => {
     const session = await loginUser(app, userA);
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
-      .set("Cookie", [`refresh_token=${encodeURIComponent(session.refreshCookie)}`])
+      .set("Cookie", [`refresh_token=${encodeURIComponent(session.refresh)}`])
       .expect(200);
     expect(res.body).toMatchObject({
       ok: true,
