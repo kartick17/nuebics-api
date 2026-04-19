@@ -46,7 +46,11 @@ describe("Verification — Happy", () => {
       .post("/api/auth/verify-email")
       .send({ code })
       .expect(200);
+    expect(res.body.ok).toBe(true);
     expect(res.body.message).toBe("Email verified successfully.");
+    expect(res.body.user_details.isEmailVerified).toBe(true);
+    expect(res.body.user_details.email).toBe(userA.email);
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
   it("VER-HAPPY-003: GET /auth/verify-phone returns status", async () => {
@@ -62,7 +66,11 @@ describe("Verification — Happy", () => {
       .post("/api/auth/verify-phone")
       .send({ code })
       .expect(200);
+    expect(res.body.ok).toBe(true);
     expect(res.body.message).toBe("Phone verified successfully.");
+    expect(res.body.user_details.isPhoneVerified).toBe(true);
+    expect(res.body.user_details.phone).toBe(userA.phone);
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
   it("VER-HAPPY-005: POST /auth/resend-otp email → sent", async () => {
