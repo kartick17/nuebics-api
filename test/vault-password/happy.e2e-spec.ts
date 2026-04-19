@@ -28,7 +28,10 @@ describe("VaultPassword — Happy", () => {
       .post("/api/auth/vault-password")
       .send({ encryptedToken: "opaque-ciphertext" })
       .expect(200);
-    expect(res.body).toEqual({ message: "Vault password set successfully." });
+    expect(res.body.ok).toBe(true);
+    expect(res.body.message).toBe("Vault password set successfully.");
+    expect(res.body.user_details.vaultCredentialVerifier).toBe(true);
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
   it("VP-HAPPY-002: GET /auth/vault-password returns verifier", async () => {
@@ -37,7 +40,7 @@ describe("VaultPassword — Happy", () => {
       .post("/api/auth/vault-password")
       .send({ encryptedToken: "opaque" });
     const res = await authed(app, session).get("/api/auth/vault-password").expect(200);
-    expect(res.body).toEqual({ verifier: expect.any(String) });
+    expect(res.body).toEqual({ ok: true, verifier: expect.any(String) });
   });
 
   it("VP-HAPPY-003: set twice returns credentialChecker", async () => {
@@ -50,6 +53,6 @@ describe("VaultPassword — Happy", () => {
       .post("/api/auth/vault-password")
       .send({ encryptedToken: "second" })
       .expect(200);
-    expect(res.body).toEqual({ credentialChecker: expect.any(String) });
+    expect(res.body).toEqual({ ok: true, credentialChecker: expect.any(String) });
   });
 });
