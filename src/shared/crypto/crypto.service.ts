@@ -9,7 +9,7 @@ export interface TokenPayload {
   sessionId: string;
 }
 
-export interface RefreshPayload {
+interface RefreshPayload {
   userId: string;
   sessionId: string;
   exp: number;

@@ -127,10 +127,12 @@ curl -s -X POST localhost:3001/api/auth/signup \
   -H 'content-type: application/json' \
   -d '{"name":"A","email":"a@b.com","phone":"+15550001111","password":"Password123!","confirmPassword":"Password123!"}'
 
-# login — tokens returned in JSON body
-curl -s -X POST localhost:3001/api/auth/login \
+# login — capture tokens from JSON body
+LOGIN=$(curl -s -X POST localhost:3001/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"identifier":"a@b.com","password":"Password123!"}' | jq
+  -d '{"identifier":"a@b.com","password":"Password123!"}')
+ACCESS=$(echo "$LOGIN" | jq -r .access_token)
+REFRESH=$(echo "$LOGIN" | jq -r .refresh_token)
 
 # me with bearer
 curl -s localhost:3001/api/auth/me -H "Authorization: Bearer $ACCESS" | jq

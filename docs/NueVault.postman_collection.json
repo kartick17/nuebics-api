@@ -2,7 +2,7 @@
   "info": {
     "name": "NueVault API",
     "_postman_id": "nuevault-api-v1",
-    "description": "Postman collection for the NueVault encrypted file vault API (Next.js App Router). Uses Bearer token auth on protected routes; tokens are issued as httpOnly cookies on /auth/login — copy the access_token cookie value into the `access_token` environment variable to use Bearer auth in Postman.",
+    "description": "Postman collection for the NueVault API. Uses Bearer token auth on protected routes. /auth/login and /auth/refresh return plain JWTs in the JSON response body — copy the `access_token` field into the `access_token` environment variable and the `refresh_token` field into the `refresh_token` variable.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -13,8 +13,8 @@
   },
   "variable": [
     { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
-    { "key": "access_token", "value": "", "type": "string", "description": "Encrypted JWT access token (expires 10m). Grab from the access_token cookie after /auth/login." },
-    { "key": "refresh_token", "value": "", "type": "string", "description": "Refresh token (expires 5d). Read from cookie after login." },
+    { "key": "access_token", "value": "", "type": "string", "description": "JWT access token (expires 10m). Read from the access_token field of the /auth/login response body." },
+    { "key": "refresh_token", "value": "", "type": "string", "description": "Refresh token (expires 5d). Read from the refresh_token field of the /auth/login response body. Always rotated by /auth/refresh." },
     { "key": "cron_secret", "value": "", "type": "string" },
     { "key": "file_id", "value": "", "type": "string" },
     { "key": "folder_id", "value": "", "type": "string" },
@@ -50,7 +50,7 @@
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"jane@example.com\",\n  \"password\": \"supersecret123\"\n}"
             },
-            "description": "Authenticate with email or phone + password. Sets `access_token` (10m) and `refresh_token` (5d) httpOnly cookies. Rate-limited to 10 attempts per IP per 15 minutes."
+            "description": "Authenticate with email or phone + password. Returns `{ ok, message, user_details, access_token, refresh_token }` in the JSON body. Rate-limited to 10 attempts per IP per 15 minutes."
           }
         },
         {
@@ -58,19 +58,13 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": { "raw": "{{base_url}}/api/auth/refresh", "host": ["{{base_url}}"], "path": ["api", "auth", "refresh"] },
-            "description": "Issues a new access token from the `refresh_token` cookie. Rotates the refresh token if within 1 day of expiry."
-          }
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [],
-            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] },
-            "description": "Clears all authentication and user-detail cookies."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "description": "Takes the current refresh_token in the JSON body and returns a new `{ ok, message, access_token, refresh_token }` pair. Both tokens are always rotated."
           }
         },
         {
