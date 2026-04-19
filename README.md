@@ -2,7 +2,7 @@
 
 NestJS port of the NueVault API originally built inside the Next.js app at `../nuebics-next-ts-app`. This service owns all backend endpoints for auth, file/folder storage, trash, favourites, and the purge cron. The frontend still lives in the Next.js project.
 
-The port was executed with **byte-exact parity** for anything that interacts with persisted user data (MongoDB documents, bcrypt hashes, CryptoJS-AES-wrapped cookies, jose HS256 JWTs). Existing users can continue logging in against this service without any migration.
+The auth flow is **stateless JWT-in-body**. Login and refresh return plain `access_token` / `refresh_token` JWTs in the JSON response. The backend does not set cookies, does not encrypt tokens, and does not read cookies on protected routes — the `Authorization: Bearer <jwt>` header is the only accepted credential. Cookie storage and any at-rest token encryption are the BFF's responsibility. Mobile clients can use secure storage. Persisted user data (Mongo documents, bcrypt hashes, the AES-encrypted vault credential) remains byte-exact with the Next.js source.
 
 ## Setup
 
@@ -26,30 +26,28 @@ A successful boot logs:
 ## Architecture
 
 - **Global prefix** `/api` — every route is mounted under `/api/...`.
-- `cookie-parser` on the request pipeline; cookies are CryptoJS-AES-encrypted JWTs.
 - `AllExceptionsFilter` translates thrown exceptions to `{ ok: false, error }` at the appropriate status.
 - Feature modules: `AuthModule`, `FoldersModule`, `FilesModule`, `TrashModule`, `FavouritesModule`, `CronModule`.
-- Shared global modules: `CryptoModule` (cookie/JWT crypto), `DatabaseModule` (Mongoose), `S3Module` (presign, head, delete), `ThrottlerModule` (login/signup/resend limits).
-- Auth guard is `JwtAuthGuard` — reads `Authorization: Bearer <encrypted-token>`, decrypts (CryptoJS), verifies (jose), and attaches `req.user = { userId, sessionId }`.
+- Shared global modules: `CryptoModule` (JWT signing + AES for the vault credential), `DatabaseModule` (Mongoose), `S3Module` (presign, head, delete), `ThrottlerModule` (login/signup/resend limits).
+- Auth guard is `JwtAuthGuard` — reads `Authorization: Bearer <jwt>`, verifies with `jose`, and attaches `req.user = { userId, sessionId }`. No cookie reads anywhere.
 - `@CurrentUser()` is a param decorator exposing `TokenPayload` in controllers.
 - Resend-OTP is keyed by `userId:channel` via `UserChannelThrottlerGuard`.
 - Cron is keyed by `x-cron-secret` header via `CronSecretGuard`.
 
 ## Endpoints
 
-All require `Authorization: Bearer <cookie-access_token>` except where marked **Public**.
+All protected routes require `Authorization: Bearer <access_token>` except where marked **Public**.
 
 ### Auth — `/api/auth`
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | POST | `/signup` | Public | Create user, generate OTPs (dispatch TODO). |
-| POST | `/login` | Public | Sets 4 cookies: `access_token`, `refresh_token`, `user_details`, `encrypted_user_details`. |
-| POST | `/logout` | Public | Clears all auth cookies. |
-| POST | `/refresh` | Cookie | Uses `refresh_token` cookie; rotates refresh when < 1 day remains. |
-| GET | `/me` | Bearer | Returns profile without `passwordHash`. |
-| GET \| POST | `/verify-email` | Bearer | Status / verify with `{code}`. |
-| GET \| POST | `/verify-phone` | Bearer | Status / verify with `{code}`. |
+| POST | `/login` | Public | Returns `{ ok, message, user_details, access_token, refresh_token }` in body. |
+| POST | `/refresh` | Body | Takes `{ refresh_token }`; always rotates and returns new `access_token` + `refresh_token` in body. |
+| GET | `/me` | Bearer | Returns `{ ok, user_details }`. |
+| GET \| POST | `/verify-email` | Bearer | Status / verify with `{code}`; POST returns `{ ok, message, user_details }`. |
+| GET \| POST | `/verify-phone` | Bearer | Status / verify with `{code}`; POST returns `{ ok, message, user_details }`. |
 | POST | `/resend-otp` | Bearer | `{channel:"email"\|"phone"}`; throttled 3/15min per `userId:channel`. |
 | GET \| POST | `/vault-password` | Bearer | Read/set the encrypted vault verifier blob. |
 
@@ -83,27 +81,23 @@ All require `Authorization: Bearer <cookie-access_token>` except where marked **
 |---|---|---|---|
 | POST | `/purge-trash` | `x-cron-secret` header | Hard-deletes S3 + DB for items past retention. |
 
-### Response shape asymmetry
+### Response shape
 
-Mirrored exactly from the Next.js source:
-- Auth routes (login/signup/logout/refresh/me) use the `{ ok: true, ... }` / `{ ok: false, error }` envelope.
-- File, folder, trash, favourites, verify-*, vault-password, cron routes return **bare** shapes (`{ folder }`, `{ files, folders }`, `{ success, message }`, `{ error }`, etc). Do not add the envelope to these — the frontend depends on the asymmetry.
+- Auth, verification, and vault-password routes use `{ ok: true, ... }` for success and `{ ok: false, error }` for errors.
+- File, folder, trash, favourites, and cron routes return bare shapes (`{ folder }`, `{ files, folders }`, `{ success, message }`, `{ error }`, etc). Do not add the envelope to these — the frontend depends on the asymmetry.
 
-## Parity invariants — DO NOT change
+## Invariants — DO NOT change
 
-Anything breaking these will invalidate existing user data or sessions.
+Anything breaking these will invalidate existing user data.
 
-1. **Cookie encryption:** `CryptoJS.AES.encrypt(token, CRYPTO_SECRET).toString()` (CBC/PKCS7, OpenSSL-compatible KDF). Do NOT switch to `node:crypto` — ciphertext format differs.
-2. **JWT signing:** `jose.SignJWT` with `HS256`, `setIssuedAt()`, `setExpirationTime('600s' | '432000s')`, key via `new TextEncoder().encode(JWT_*_SECRET)`.
-3. **Password hashing:** `bcryptjs` with 12 rounds. Dummy hash used on login-miss for timing protection: `$2b$12$invalidhashfortimingprotection000000000000000000000000`.
-4. **Token payload:** `{ userId, sessionId }` for access; refresh additionally has `exp`. `sessionId` is `crypto.randomUUID()` at login, never persisted to the DB.
-5. **TTLs:** access 10 min, refresh 5 days; rotate refresh when `< 1 day` left.
-6. **Cookie flags:** `access_token` is **not** httpOnly (frontend reads it for the Bearer header); `refresh_token` and `encrypted_user_details` are httpOnly. All are `sameSite:lax`, `secure` in prod, `path:/`. Cookie values are URL-encoded by Express — `cookie-parser` decodes on receipt.
-7. **Mongoose collections:** `users`, `files`, `folders`. Field names + index definitions in `src/shared/database/schemas/` are copied verbatim from the source.
-8. **S3 key format:** `uploads/${userId}/${uuidv4()}.${ext}`.
-9. **Env var names** match the Next.js deployment exactly. `MAX_FILES` replaces the Next-only `NEXT_PUBLIC_MAX_FILES`.
-
-Tests in `src/shared/crypto/crypto.service.spec.ts` assert round-trip parity with the Next.js source implementation (CryptoJS decrypt and jose verify).
+1. **JWT signing:** `jose.SignJWT` with `HS256`, `setIssuedAt()`, `setExpirationTime('600s' | '432000s')`, key via `new TextEncoder().encode(JWT_*_SECRET)`. Tokens are returned in the response body — no encryption wrapping.
+2. **Password hashing:** `bcryptjs` with 12 rounds. Dummy hash used on login-miss for timing protection: `$2b$12$invalidhashfortimingprotection000000000000000000000000`.
+3. **Token payload:** `{ userId, sessionId }` for access; refresh additionally has `exp`. `sessionId` is `crypto.randomUUID()` at login, never persisted to the DB.
+4. **TTLs:** access 10 min, refresh 5 days. Every refresh call rotates both tokens.
+5. **Vault credential encryption:** `vaultCredentialVerifier` in the `users` collection is still AES-encrypted at rest via `CryptoService.encryptToken` (CryptoJS, OpenSSL-compatible KDF, `CRYPTO_SECRET`). This is independent of JWT transport.
+6. **Mongoose collections:** `users`, `files`, `folders`. Field names + index definitions in `src/shared/database/schemas/` are copied verbatim from the source.
+7. **S3 key format:** `uploads/${userId}/${uuidv4()}.${ext}`.
+8. **Env var names** match the Next.js deployment exactly. `MAX_FILES` replaces the Next-only `NEXT_PUBLIC_MAX_FILES`.
 
 ## Environment variables
 
@@ -111,9 +105,9 @@ See `.env.example`. All are validated at startup via a Zod schema at `src/config
 
 ```
 MONGODB_URI               MongoDB connection string
-JWT_ACCESS_SECRET         64-byte hex — MUST match Next.js deployment
-JWT_REFRESH_SECRET        64-byte hex — MUST match Next.js deployment
-CRYPTO_SECRET             64-byte hex — MUST match Next.js deployment
+JWT_ACCESS_SECRET         64-byte hex
+JWT_REFRESH_SECRET        64-byte hex
+CRYPTO_SECRET             64-byte hex (AES key for vaultCredentialVerifier at rest)
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_REGION
@@ -122,28 +116,45 @@ MAX_FILES                 Download batch limit (default 50)
 CRON_SECRET               Required in x-cron-secret header for purge-trash
 PORT                      Default 3001
 NODE_ENV                  development | production | test
-CORS_ORIGIN               Optional, comma-separated; defaults to reflecting Origin with credentials
+CORS_ORIGIN               Optional, comma-separated
 ```
 
 ## Manual smoke test
 
-A full curl walkthrough lives in `docs/superpowers/plans/2026-04-14-port-api-to-nestjs.md#task-25`. Minimal round-trip confirmed during the port:
-- signup → login (sets 4 cookies) → `/me` with URL-decoded `access_token` as Bearer → create/list folder → presign S3 PUT → refresh → logout.
+```bash
+# signup
+curl -s -X POST localhost:3001/api/auth/signup \
+  -H 'content-type: application/json' \
+  -d '{"name":"A","email":"a@b.com","phone":"+15550001111","password":"Password123!","confirmPassword":"Password123!"}'
 
-When extracting the cookie value from a curl jar to use as Bearer, URL-decode first (Express stores the percent-encoded form); browsers handle this automatically.
+# login — tokens returned in JSON body
+curl -s -X POST localhost:3001/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"identifier":"a@b.com","password":"Password123!"}' | jq
+
+# me with bearer
+curl -s localhost:3001/api/auth/me -H "Authorization: Bearer $ACCESS" | jq
+
+# refresh — sends refresh_token in body, gets new pair
+curl -s -X POST localhost:3001/api/auth/refresh \
+  -H 'content-type: application/json' \
+  -d "{\"refresh_token\":\"$REFRESH\"}" | jq
+```
+
+No cookies are set on any response. The BFF (or mobile client) owns token storage.
 
 ## Known limitations
 
 - **OTP dispatch is not wired.** Both the source and this port store the 6-digit OTP in the user document but never send it via email/SMS. A follow-up should plug in SES/SNS/Twilio.
 - **Rate-limiting is per-process.** `@nestjs/throttler` uses an in-memory store. Deploying more than one replica requires swapping the storage adapter (Redis).
-- **Session revocation is cookie-clear only.** There is no server-side session table; logging out a compromised device requires rotating `JWT_*_SECRET` or waiting for natural expiry.
+- **No server-side revocation.** Access tokens are stateless; a leaked token is valid until its 10-minute expiry. Shorter TTLs and/or a Redis-backed blacklist can be added if needed.
 - **Stateless sessionId.** The `sessionId` in JWT claims is never persisted, so server-side "active sessions" listings are not possible without adding a model.
 
 ## Project layout
 
 ```
 src/
-├── main.ts                          # bootstrap, cookie-parser, /api prefix, CORS, filter
+├── main.ts                          # bootstrap, /api prefix, CORS, filter
 ├── app.module.ts                    # composes every feature module
 ├── config/                          # env validation
 ├── common/
@@ -153,10 +164,10 @@ src/
 │   ├── pipes/                       # ZodValidationPipe
 │   └── response/                    # ok/err/validationErr helpers
 ├── shared/
-│   ├── crypto/                      # CryptoService + parity tests
+│   ├── crypto/                      # CryptoService (JWT sign/verify + AES for vault credential)
 │   ├── database/                    # Mongoose schemas + DatabaseModule
 │   └── s3/                          # S3Service
-├── auth/                            # auth, verification, vault-password + CookieService
+├── auth/                            # auth, verification, vault-password + user-details serializer
 ├── folders/                         # CRUD + helpers + DTOs (cycle detection tested)
 ├── files/                           # CRUD + download (batch+single) + contents
 ├── trash/                           # trash list + restore
