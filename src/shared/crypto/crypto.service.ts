@@ -54,11 +54,9 @@ export class CryptoService {
       .sign(this.accessSecret);
   }
 
-  async verifyAccessToken(encryptedOrRaw: string): Promise<TokenPayload | null> {
+  async verifyAccessToken(token: string): Promise<TokenPayload | null> {
     try {
-      const decrypted = this.decryptToken(encryptedOrRaw);
-      if (!decrypted) return null;
-      const { payload } = await jwtVerify(decrypted, this.accessSecret);
+      const { payload } = await jwtVerify(token, this.accessSecret);
       return payload as unknown as TokenPayload;
     } catch {
       return null;
@@ -73,11 +71,9 @@ export class CryptoService {
       .sign(this.refreshSecret);
   }
 
-  async verifyRefreshToken(encryptedOrRaw: string): Promise<RefreshPayload | null> {
+  async verifyRefreshToken(token: string): Promise<RefreshPayload | null> {
     try {
-      const decrypted = this.decryptToken(encryptedOrRaw);
-      if (!decrypted) return null;
-      const { payload } = await jwtVerify(decrypted, this.refreshSecret);
+      const { payload } = await jwtVerify(token, this.refreshSecret);
       return payload as unknown as RefreshPayload;
     } catch {
       return null;

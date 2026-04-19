@@ -48,10 +48,9 @@ describe('JwtAuthGuard', () => {
     await expect(guard.canActivate(makeCtx('Bearer garbage'))).rejects.toThrow('Unauthorized');
   });
 
-  it('accepts valid encrypted token and attaches req.user', async () => {
+  it('accepts valid bearer token and attaches req.user', async () => {
     const raw = await crypto.signAccessToken('u', 's');
-    const encrypted = crypto.encryptToken(raw);
-    const req: any = { headers: { authorization: `Bearer ${encrypted}` } };
+    const req: any = { headers: { authorization: `Bearer ${raw}` } };
     const ctx = { switchToHttp: () => ({ getRequest: () => req }) } as any;
     const allowed = await guard.canActivate(ctx);
     expect(allowed).toBe(true);
