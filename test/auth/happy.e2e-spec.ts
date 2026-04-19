@@ -94,13 +94,14 @@ describe("Auth — Happy", () => {
     const res = await authed(app, session).get("/api/auth/me").expect(200);
     expect(res.body).toMatchObject({
       ok: true,
-      user: {
+      user_details: {
         id: expect.any(String),
         name: userA.name,
         email: userA.email,
         phone: userA.phone,
         isEmailVerified: false,
         isPhoneVerified: false,
+        vaultCredentialVerifier: false,
       },
     });
   });

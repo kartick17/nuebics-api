@@ -63,17 +63,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() auth: TokenPayload) {
     const user = await this.auth.me(auth.userId);
-    return {
-      ok: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
-        createdAt: user.createdAt,
-      },
-    };
+    return { ok: true, user_details: toUserDetails(user) };
   }
 }

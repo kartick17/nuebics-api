@@ -70,7 +70,7 @@ describe("Auth — Chaos", () => {
       .get("/api/auth/me")
       .set("Authorization", `Bearer ${accessToken}`)
       .expect(200);
-    expect(me.body.user.name).toBe(PAYLOAD_XSS_SCRIPT.slice(0, 60));
+    expect(me.body.user_details.name).toBe(PAYLOAD_XSS_SCRIPT.slice(0, 60));
   });
 
   it("AUTH-CHAOS-004: null-byte in password (documented behavior)", async () => {
