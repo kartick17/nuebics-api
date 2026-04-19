@@ -68,19 +68,20 @@ describe("Auth — Happy", () => {
     expect(res.body.ok).toBe(true);
   });
 
-  it("AUTH-HAPPY-003: POST /api/auth/refresh rotates tokens", async () => {
+  it("AUTH-HAPPY-003: POST /api/auth/refresh returns new tokens in body", async () => {
     const session = await loginUser(app, userA);
+    await new Promise((r) => setTimeout(r, 1100)); // ensure iat advances ≥ 1 s
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
-      .set("Cookie", [`refresh_token=${encodeURIComponent(session.refresh)}`])
+      .send({ refresh_token: session.refresh })
       .expect(200);
-    expect(res.body).toMatchObject({
-      ok: true,
-      message: "Token refreshed",
-      token: expect.any(String),
-    });
-    const setCookie = res.headers["set-cookie"] as unknown as string[];
-    expect(setCookie.some((c) => c.startsWith("access_token="))).toBe(true);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.message).toBe("Token refreshed");
+    expect(res.body.access_token).toMatch(/^ey/);
+    expect(res.body.refresh_token).toMatch(/^ey/);
+    expect(res.body.access_token).not.toBe(session.bearer);
+    expect(res.body.refresh_token).not.toBe(session.refresh);
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
   it("AUTH-HAPPY-004: POST /api/auth/logout clears cookies", async () => {

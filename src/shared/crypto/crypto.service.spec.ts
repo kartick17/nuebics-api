@@ -62,12 +62,6 @@ describe('CryptoService — parity with Next.js source', () => {
     await expect(service.verifyAccessToken('not-a-jwt')).resolves.toBeNull();
   });
 
-  it('shouldRotate returns true when < 1 day left', () => {
-    const nowSec = Math.floor(Date.now() / 1000);
-    expect(service.shouldRotate(nowSec + 30 * 60)).toBe(true);
-    expect(service.shouldRotate(nowSec + 3 * 24 * 60 * 60)).toBe(false);
-  });
-
   it('verifies a plain access JWT signed by a raw SignJWT call', async () => {
     const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
     const sourceToken = await new SignJWT({ userId: 'x', sessionId: 'y' })

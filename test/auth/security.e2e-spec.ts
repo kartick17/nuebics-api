@@ -45,11 +45,11 @@ describe("Auth — Security", () => {
       .expect(401);
   });
 
-  it("AUTH-SEC-004: access token in refresh slot → 401", async () => {
+  it("AUTH-SEC-004: access token sent as refresh_token → 401", async () => {
     const session = await loginUser(app, userA);
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
-      .set("Cookie", [`refresh_token=${encodeURIComponent(session.bearer)}`])
+      .send({ refresh_token: session.bearer })
       .expect(401);
     expect(res.body.ok).toBe(false);
   });

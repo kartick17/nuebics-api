@@ -18,7 +18,6 @@ export interface RefreshPayload {
 export const ACCESS_TOKEN_SECONDS = 10 * 60;
 export const REFRESH_TOKEN_DAYS = 5;
 export const REFRESH_TOKEN_SECONDS = REFRESH_TOKEN_DAYS * 24 * 60 * 60;
-export const RENEWAL_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class CryptoService {
@@ -78,9 +77,5 @@ export class CryptoService {
     } catch {
       return null;
     }
-  }
-
-  shouldRotate(expUnixSec: number): boolean {
-    return expUnixSec * 1000 - Date.now() < RENEWAL_THRESHOLD_MS;
   }
 }

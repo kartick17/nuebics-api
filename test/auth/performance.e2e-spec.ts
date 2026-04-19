@@ -25,10 +25,10 @@ afterAll(async () => {
 describe("Auth — Performance (concurrency)", () => {
   it("AUTH-PERF-002: parallel refresh with same token → one 200, one 200|401", async () => {
     const session = await loginUser(app, userA);
-    const refreshCookie = `refresh_token=${encodeURIComponent(session.refresh)}`;
+    const body = { refresh_token: session.refresh };
     const results = await Promise.allSettled([
-      request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", [refreshCookie]),
-      request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", [refreshCookie]),
+      request(app.getHttpServer()).post("/api/auth/refresh").send(body),
+      request(app.getHttpServer()).post("/api/auth/refresh").send(body),
     ]);
     const statuses = results
       .map((r) => (r.status === "fulfilled" ? r.value.status : 0))

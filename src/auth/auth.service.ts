@@ -65,15 +65,13 @@ export class AuthService {
     return { user, accessToken, refreshToken };
   }
 
-  async refresh(encryptedRefresh: string) {
-    const payload = await this.crypto.verifyRefreshToken(encryptedRefresh);
+  async refresh(refreshToken: string) {
+    const payload = await this.crypto.verifyRefreshToken(refreshToken);
     if (!payload) return null;
-    const { userId, sessionId, exp } = payload;
-    const newAccess = await this.crypto.signAccessToken(userId, sessionId);
-    const rotated = this.crypto.shouldRotate(exp)
-      ? await this.crypto.signRefreshToken(userId, sessionId)
-      : null;
-    return { accessToken: newAccess, refreshToken: rotated };
+    const { userId, sessionId } = payload;
+    const accessToken = await this.crypto.signAccessToken(userId, sessionId);
+    const newRefreshToken = await this.crypto.signRefreshToken(userId, sessionId);
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
   async me(userId: string) {

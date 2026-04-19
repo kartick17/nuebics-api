@@ -1,8 +1,8 @@
 import {
-  Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards, UsePipes,
+  Body, Controller, Get, HttpCode, Post, Res, UnauthorizedException, UseGuards, UsePipes,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CookieService } from './cookie.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -13,6 +13,8 @@ import { signupSchema } from './dto/signup.schema';
 import type { SignupInput } from './dto/signup.schema';
 import { loginSchema } from './dto/login.schema';
 import type { LoginInput } from './dto/login.schema';
+import { refreshSchema } from './dto/refresh.schema';
+import type { RefreshInput } from './dto/refresh.schema';
 import { toUserDetails } from './user-details';
 
 @Controller('auth')
@@ -55,21 +57,18 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const cookie = req.cookies?.refresh_token;
-    if (!cookie) {
-      res.status(401);
-      return { ok: false, error: 'Unauthorized. Please log in.' };
-    }
-    const result = await this.auth.refresh(cookie);
+  @UsePipes(new ZodValidationPipe(refreshSchema))
+  async refresh(@Body() dto: RefreshInput) {
+    const result = await this.auth.refresh(dto.refresh_token);
     if (!result) {
-      this.cookies.clearAll(res);
-      res.status(401);
-      return { ok: false, error: 'Session expired. Please log in again.' };
+      throw new UnauthorizedException('Session expired. Please log in again.');
     }
-    this.cookies.setAccessCookie(res, result.accessToken);
-    if (result.refreshToken) this.cookies.setRefreshCookie(res, result.refreshToken);
-    return { ok: true, message: 'Token refreshed', token: result.accessToken };
+    return {
+      ok: true,
+      message: 'Token refreshed',
+      access_token: result.accessToken,
+      refresh_token: result.refreshToken,
+    };
   }
 
   @Get('me')
