@@ -74,10 +74,4 @@ describe("Auth — Security", () => {
       .expect(401);
   });
 
-  it("AUTH-SEC-009: access token reused after logout → 401 (finding if passes as 200)", async () => {
-    const session = await loginUser(app, userA);
-    await authed(app, session).post("/api/auth/logout").expect(200);
-    const res = await authed(app, session).get("/api/auth/me");
-    expect(res.status).toBe(401);
-  });
 });

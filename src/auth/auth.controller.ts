@@ -1,10 +1,8 @@
 import {
-  Body, Controller, Get, HttpCode, Post, Res, UnauthorizedException, UseGuards, UsePipes,
+  Body, Controller, Get, HttpCode, Post, UnauthorizedException, UseGuards, UsePipes,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import { CookieService } from './cookie.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { TokenPayload } from '../shared/crypto/crypto.service';
@@ -19,10 +17,7 @@ import { toUserDetails } from './user-details';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly auth: AuthService,
-    private readonly cookies: CookieService,
-  ) {}
+  constructor(private readonly auth: AuthService) {}
 
   @Post('signup')
   @HttpCode(201)
@@ -46,13 +41,6 @@ export class AuthController {
       access_token: accessToken,
       refresh_token: refreshToken,
     };
-  }
-
-  @Post('logout')
-  @HttpCode(200)
-  logout(@Res({ passthrough: true }) res: Response) {
-    this.cookies.clearAll(res);
-    return { ok: true, message: 'Logged out successfully' };
   }
 
   @Post('refresh')

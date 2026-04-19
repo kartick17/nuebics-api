@@ -84,14 +84,9 @@ describe("Auth — Happy", () => {
     expect(res.headers["set-cookie"]).toBeUndefined();
   });
 
-  it("AUTH-HAPPY-004: POST /api/auth/logout clears cookies", async () => {
+  it("AUTH-HAPPY-004: POST /api/auth/logout is removed (stateless API)", async () => {
     const session = await loginUser(app, userA);
-    const res = await authed(app, session).post("/api/auth/logout").expect(200);
-    expect(res.body).toEqual({ ok: true, message: "Logged out successfully" });
-    const setCookie = res.headers["set-cookie"] as unknown as string[];
-    expect(
-      setCookie.some((c) => c.includes("access_token=") && /(Max-Age=0|Expires=)/.test(c)),
-    ).toBe(true);
+    await authed(app, session).post("/api/auth/logout").expect(404);
   });
 
   it("AUTH-HAPPY-005: GET /api/auth/me returns authenticated user", async () => {
