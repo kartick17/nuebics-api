@@ -127,7 +127,7 @@ export class AuthService {
     );
     const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_SECONDS * 1000);
 
-    const swap = await this.refreshTokenModel.findOneAndUpdate(
+    const swap = await this.refreshTokenModel.updateOne(
       {
         sessionId,
         tokenHash: hashToken(refreshToken),
@@ -139,10 +139,9 @@ export class AuthService {
           expiresAt: newExpiresAt,
         },
       },
-      { new: true },
     );
 
-    if (!swap) return null;
+    if (swap.matchedCount === 0) return null;
 
     return { user, accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
