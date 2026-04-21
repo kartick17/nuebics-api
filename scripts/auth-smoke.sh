@@ -170,6 +170,12 @@ NEW_REFRESH=$(jq -r .refresh_token /tmp/t16.json)
 [[ "$NEW_REFRESH" == ey* ]] && ok "new refresh_token is a JWT" || bad "new refresh_token" "got: $NEW_REFRESH"
 [ "$NEW_ACCESS" != "$ACCESS" ] && ok "access_token rotated" || bad "access_token rotation" "same as before"
 [ "$NEW_REFRESH" != "$REFRESH" ] && ok "refresh_token rotated" || bad "refresh_token rotation" "same as before"
+UD_EMAIL=$(jq -r .user_details.email /tmp/t16.json)
+UD_EVER=$(jq -r .user_details.isEmailVerified /tmp/t16.json)
+UD_PVER=$(jq -r .user_details.isPhoneVerified /tmp/t16.json)
+[ "$UD_EMAIL" = "$EMAIL" ] && ok "user_details.email matches" || bad "user_details.email" "got $UD_EMAIL"
+[ "$UD_EVER" = "true" ] && ok "user_details.isEmailVerified=true" || bad "isEmailVerified" "got $UD_EVER"
+[ "$UD_PVER" = "true" ] && ok "user_details.isPhoneVerified=true" || bad "isPhoneVerified" "got $UD_PVER"
 
 # -----------------------------------------------------------
 hdr "T17 POST /auth/refresh (empty body → 400)"

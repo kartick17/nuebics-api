@@ -54,6 +54,7 @@ export class AuthController {
     return {
       ok: true,
       message: 'Token refreshed',
+      user_details: toUserDetails(result.user),
       access_token: result.accessToken,
       refresh_token: result.refreshToken,
     };
