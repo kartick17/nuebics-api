@@ -1,30 +1,52 @@
-import { Injectable, ConflictException, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { User, UserDocument } from '../shared/database/schemas/user.schema';
-import { CryptoService } from '../shared/crypto/crypto.service';
+import {
+  RefreshToken,
+  RefreshTokenDocument,
+} from '../shared/database/schemas/refresh-token.schema';
+import {
+  CryptoService,
+  REFRESH_TOKEN_SECONDS,
+} from '../shared/crypto/crypto.service';
 import type { SignupInput } from './dto/signup.schema';
 import type { LoginInput } from './dto/login.schema';
 
-const DUMMY_HASH = '$2b$12$invalidhashfortimingprotection000000000000000000000000';
+const DUMMY_HASH =
+  '$2b$12$invalidhashfortimingprotection000000000000000000000000';
 
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(RefreshToken.name)
+    private readonly refreshTokenModel: Model<RefreshTokenDocument>,
     private readonly crypto: CryptoService,
   ) {}
 
   async signup(input: SignupInput): Promise<void> {
     const { name, email, phone, password } = input;
 
-    if (email && (await this.userModel.exists({ email: email.toLowerCase() }))) {
+    if (
+      email &&
+      (await this.userModel.exists({ email: email.toLowerCase() }))
+    ) {
       throw new ConflictException('Email is already in use');
     }
     if (phone && (await this.userModel.exists({ phone }))) {
@@ -48,7 +70,11 @@ export class AuthService {
     });
   }
 
-  async login(input: LoginInput): Promise<{ user: UserDocument; accessToken: string; refreshToken: string }> {
+  async login(input: LoginInput): Promise<{
+    user: UserDocument;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const { identifier, password } = input;
     const isEmail = identifier.includes('@');
     const user = isEmail
@@ -60,8 +86,29 @@ export class AuthService {
     if (!user || !valid) throw new UnauthorizedException('Invalid credentials');
 
     const sessionId = randomUUID();
-    const accessToken = await this.crypto.signAccessToken(user._id.toString(), sessionId);
-    const refreshToken = await this.crypto.signRefreshToken(user._id.toString(), sessionId);
+    const accessToken = await this.crypto.signAccessToken(
+      user._id.toString(),
+      sessionId,
+    );
+    const refreshToken = await this.crypto.signRefreshToken(
+      user._id.toString(),
+      sessionId,
+    );
+
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_SECONDS * 1000);
+    await this.refreshTokenModel.updateOne(
+      { sessionId },
+      {
+        $set: {
+          sessionId,
+          userId: user._id,
+          tokenHash: hashToken(refreshToken),
+          expiresAt,
+        },
+      },
+      { upsert: true },
+    );
+
     return { user, accessToken, refreshToken };
   }
 
@@ -69,9 +116,35 @@ export class AuthService {
     const payload = await this.crypto.verifyRefreshToken(refreshToken);
     if (!payload) return null;
     const { userId, sessionId } = payload;
-    const accessToken = await this.crypto.signAccessToken(userId, sessionId);
-    const newRefreshToken = await this.crypto.signRefreshToken(userId, sessionId);
-    return { accessToken, refreshToken: newRefreshToken };
+
+    const user = await this.userModel.findById(userId).select('-passwordHash');
+    if (!user) return null;
+
+    const newAccessToken = await this.crypto.signAccessToken(userId, sessionId);
+    const newRefreshToken = await this.crypto.signRefreshToken(
+      userId,
+      sessionId,
+    );
+    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_SECONDS * 1000);
+
+    const swap = await this.refreshTokenModel.findOneAndUpdate(
+      {
+        sessionId,
+        tokenHash: hashToken(refreshToken),
+        expiresAt: { $gt: new Date() },
+      },
+      {
+        $set: {
+          tokenHash: hashToken(newRefreshToken),
+          expiresAt: newExpiresAt,
+        },
+      },
+      { new: true },
+    );
+
+    if (!swap) return null;
+
+    return { user, accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 
   async me(userId: string) {
