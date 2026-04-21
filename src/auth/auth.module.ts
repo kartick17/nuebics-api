@@ -9,10 +9,29 @@ import { VaultPasswordService } from './vault-password.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UserChannelThrottlerGuard } from '../common/guards/user-channel-throttler.guard';
 import { User, UserSchema } from '../shared/database/schemas/user.schema';
+import {
+  RefreshToken,
+  RefreshTokenSchema,
+} from '../shared/database/schemas/refresh-token.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])],
-  controllers: [AuthController, VerificationController, VaultPasswordController],
-  providers: [AuthService, VerificationService, VaultPasswordService, JwtAuthGuard, UserChannelThrottlerGuard],
+  imports: [
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: RefreshToken.name, schema: RefreshTokenSchema },
+    ]),
+  ],
+  controllers: [
+    AuthController,
+    VerificationController,
+    VaultPasswordController,
+  ],
+  providers: [
+    AuthService,
+    VerificationService,
+    VaultPasswordService,
+    JwtAuthGuard,
+    UserChannelThrottlerGuard,
+  ],
 })
 export class AuthModule {}
