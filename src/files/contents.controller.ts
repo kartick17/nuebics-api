@@ -1,5 +1,11 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -24,93 +30,78 @@ export class ContentsController {
   async getContents(
     @CurrentUser() auth: TokenPayload,
     @Query('folderId') folderIdParam: string | undefined,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    try {
-      const { userId } = auth;
+    const { userId } = auth;
 
-      // Resolve folderId
-      let folderId: Types.ObjectId | null = null;
-      if (folderIdParam && folderIdParam !== 'null') {
-        if (!Types.ObjectId.isValid(folderIdParam)) {
-          res.status(400);
-          return { error: 'Invalid folderId' };
-        }
-
-        // Verify the folder exists and belongs to user
-        const folder = await this.folderModel
-          .findOne({ _id: folderIdParam, userId })
-          .lean();
-
-        if (!folder) {
-          res.status(404);
-          return { error: 'Folder not found' };
-        }
-
-        folderId = new Types.ObjectId(folderIdParam);
+    let folderId: Types.ObjectId | null = null;
+    if (folderIdParam && folderIdParam !== 'null') {
+      if (!Types.ObjectId.isValid(folderIdParam)) {
+        throw new BadRequestException('Invalid folderId');
       }
 
-      // Run all three queries in parallel
-      const [folders, files, breadcrumbs] = await Promise.all([
-        this.folderModel
-          .find({ userId, parentId: folderId, status: 'active' })
-          .sort({ name: 1 })
-          .lean(),
-        this.fileModel
-          .find({ userId, folderId, status: 'active' })
-          .sort({ updatedAt: -1 })
-          .lean(),
-        this.foldersHelpers.buildBreadcrumbPath(folderIdParam ?? null, userId),
-      ]);
+      const folder = await this.folderModel
+        .findOne({ _id: folderIdParam, userId })
+        .lean();
 
-      // Count items inside each folder (for subtitle "3 items")
-      const folderIds = folders.map((f) => f._id);
-
-      const [subfolderCounts, fileCounts] = await Promise.all([
-        this.folderModel.aggregate([
-          {
-            $match: {
-              userId,
-              parentId: { $in: folderIds },
-              status: 'active',
-            },
-          },
-          { $group: { _id: '$parentId', count: { $sum: 1 } } },
-        ]),
-        this.fileModel.aggregate([
-          {
-            $match: {
-              userId,
-              folderId: { $in: folderIds },
-              status: 'active',
-            },
-          },
-          { $group: { _id: '$folderId', count: { $sum: 1 } } },
-        ]),
-      ]);
-
-      // Build a lookup map: folderId → total item count
-      const countMap = new Map<string, number>();
-      for (const { _id, count } of subfolderCounts as { _id: Types.ObjectId; count: number }[]) {
-        const key = _id.toString();
-        countMap.set(key, (countMap.get(key) ?? 0) + count);
-      }
-      for (const { _id, count } of fileCounts as { _id: Types.ObjectId; count: number }[]) {
-        const key = _id.toString();
-        countMap.set(key, (countMap.get(key) ?? 0) + count);
+      if (!folder) {
+        throw new NotFoundException('Folder not found');
       }
 
-      // Attach itemCount to each folder
-      const foldersWithCount = folders.map((f) => ({
-        ...f,
-        itemCount: countMap.get(f._id.toString()) ?? 0,
-      }));
-
-      return { folders: foldersWithCount, files, breadcrumbs };
-    } catch (err) {
-      console.error('GET /api/files/contents error:', err);
-      res.status(500);
-      return { error: 'Failed to fetch contents' };
+      folderId = new Types.ObjectId(folderIdParam);
     }
+
+    const [folders, files, breadcrumbs] = await Promise.all([
+      this.folderModel
+        .find({ userId, parentId: folderId, status: 'active' })
+        .sort({ name: 1 })
+        .lean(),
+      this.fileModel
+        .find({ userId, folderId, status: 'active' })
+        .sort({ updatedAt: -1 })
+        .lean(),
+      this.foldersHelpers.buildBreadcrumbPath(folderIdParam ?? null, userId),
+    ]);
+
+    const folderIds = folders.map((f) => f._id);
+
+    const [subfolderCounts, fileCounts] = await Promise.all([
+      this.folderModel.aggregate([
+        {
+          $match: {
+            userId,
+            parentId: { $in: folderIds },
+            status: 'active',
+          },
+        },
+        { $group: { _id: '$parentId', count: { $sum: 1 } } },
+      ]),
+      this.fileModel.aggregate([
+        {
+          $match: {
+            userId,
+            folderId: { $in: folderIds },
+            status: 'active',
+          },
+        },
+        { $group: { _id: '$folderId', count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const countMap = new Map<string, number>();
+    for (const { _id, count } of subfolderCounts as { _id: Types.ObjectId; count: number }[]) {
+      const key = _id.toString();
+      countMap.set(key, (countMap.get(key) ?? 0) + count);
+    }
+    for (const { _id, count } of fileCounts as { _id: Types.ObjectId; count: number }[]) {
+      const key = _id.toString();
+      countMap.set(key, (countMap.get(key) ?? 0) + count);
+    }
+
+    const foldersWithCount = folders.map((f) => ({
+      ...f,
+      itemCount: countMap.get(f._id.toString()) ?? 0,
+    }));
+
+    return { folders: foldersWithCount, files, breadcrumbs };
   }
 }

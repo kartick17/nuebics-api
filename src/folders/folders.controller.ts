@@ -1,20 +1,21 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
   Query,
-  Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { Types } from 'mongoose';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { TokenPayload } from '../shared/crypto/crypto.service';
+import { throwIfError } from '../common/utils/throw-if-error';
 import { FoldersService } from './folders.service';
 import { createFolderSchema } from './dto/create-folder.schema';
 import { updateFolderSchema } from './dto/update-folder.schema';
@@ -28,47 +29,28 @@ export class FoldersController {
   async list(
     @CurrentUser() auth: TokenPayload,
     @Query('parentId') parentId: string | undefined,
-    @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.foldersService.listFolders(auth.userId, parentId);
-    if ('error' in result) {
-      res.status(result.status as number);
-      return { error: result.error };
-    }
+    throwIfError(result);
     return { folders: result.folders };
   }
 
   @Post()
-  async create(
-    @CurrentUser() auth: TokenPayload,
-    @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  @HttpCode(201)
+  async create(@CurrentUser() auth: TokenPayload, @Body() body: unknown) {
     const parsed = createFolderSchema.safeParse(body);
     if (!parsed.success) {
-      res.status(400);
-      return { error: parsed.error.issues[0].message };
+      throw new BadRequestException(parsed.error.issues[0].message);
     }
     const result = await this.foldersService.createFolder(auth.userId, parsed.data);
-    if ('error' in result) {
-      res.status(result.status);
-      return { error: result.error };
-    }
-    res.status(201);
+    throwIfError(result);
     return { folder: result.folder };
   }
 
   @Get(':id')
-  async getOne(
-    @CurrentUser() auth: TokenPayload,
-    @Param('id') id: string,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async getOne(@CurrentUser() auth: TokenPayload, @Param('id') id: string) {
     const result = await this.foldersService.getFolder(auth.userId, id);
-    if ('error' in result) {
-      res.status(result.status);
-      return { error: result.error };
-    }
+    throwIfError(result);
     return { folder: result.folder, breadcrumbs: result.breadcrumbs };
   }
 
@@ -77,44 +59,25 @@ export class FoldersController {
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
     @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    if (!id || id === 'undefined') {
-      res.status(400);
-      return { error: 'Invalid folder ID' };
+    if (!id || id === 'undefined' || !Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid folder ID');
     }
 
     const parsed = updateFolderSchema.safeParse(body);
     if (!parsed.success) {
-      res.status(400);
-      return { error: parsed.error.issues[0].message };
-    }
-
-    // validate id before handing off to service
-    if (!Types.ObjectId.isValid(id)) {
-      res.status(400);
-      return { error: 'Invalid folder ID' };
+      throw new BadRequestException(parsed.error.issues[0].message);
     }
 
     const result = await this.foldersService.updateFolder(auth.userId, id, parsed.data);
-    if ('error' in result) {
-      res.status(result.status);
-      return { error: result.error };
-    }
+    throwIfError(result);
     return { folder: result.folder };
   }
 
   @Delete(':id')
-  async remove(
-    @CurrentUser() auth: TokenPayload,
-    @Param('id') id: string,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async remove(@CurrentUser() auth: TokenPayload, @Param('id') id: string) {
     const result = await this.foldersService.deleteFolder(auth.userId, id);
-    if ('error' in result) {
-      res.status(result.status);
-      return { error: result.error };
-    }
+    throwIfError(result);
     return { success: result.success, message: result.message };
   }
 
@@ -123,27 +86,21 @@ export class FoldersController {
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
     @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
   ) {
     if (!Types.ObjectId.isValid(id)) {
-      res.status(400);
-      return { error: 'Invalid folder ID' };
+      throw new BadRequestException('Invalid folder ID');
     }
 
-    if (typeof (body as any)?.isFavourite !== 'boolean') {
-      res.status(400);
-      return { error: 'isFavourite must be a boolean' };
+    if (typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean') {
+      throw new BadRequestException('isFavourite must be a boolean');
     }
 
     const result = await this.foldersService.toggleFavourite(
       auth.userId,
       id,
-      (body as any).isFavourite as boolean,
+      (body as Record<string, unknown>)['isFavourite'] as boolean,
     );
-    if ('error' in result) {
-      res.status(result.status);
-      return { error: result.error };
-    }
+    throwIfError(result);
     return { folder: result.folder };
   }
 }

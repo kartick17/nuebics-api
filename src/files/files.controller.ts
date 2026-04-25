@@ -1,20 +1,21 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
   Query,
-  Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { Types } from 'mongoose';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { TokenPayload } from '../shared/crypto/crypto.service';
+import { throwIfError } from '../common/utils/throw-if-error';
 import { FilesService } from './files.service';
 import { uploadSchema } from './dto/upload.schema';
 import { confirmSchema } from './dto/confirm.schema';
@@ -27,71 +28,39 @@ export class FilesController {
 
   // POST /api/files/upload
   @Post('upload')
-  async upload(
-    @CurrentUser() auth: TokenPayload,
-    @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    try {
-      const parsed = uploadSchema.safeParse(body);
-      const raw = body as Record<string, unknown>;
-
-      if (!raw?.['fileName'] || !raw?.['fileType'] || !raw?.['fileSize']) {
-        res.status(400);
-        return { error: 'fileName, fileType and fileSize are required' };
-      }
-
-      if (!parsed.success) {
-        res.status(400);
-        return { error: parsed.error.issues[0].message };
-      }
-
-      const result = await this.filesService.presignUpload(auth.userId, parsed.data);
-      if ('error' in result) {
-        res.status(result.status as number);
-        return { error: result.error };
-      }
-      return result;
-    } catch (err) {
-      console.error('POST /api/files/upload error:', err);
-      res.status(500);
-      return { error: 'Upload failed' };
+  async upload(@CurrentUser() auth: TokenPayload, @Body() body: unknown) {
+    const raw = body as Record<string, unknown>;
+    if (!raw?.['fileName'] || !raw?.['fileType'] || !raw?.['fileSize']) {
+      throw new BadRequestException('fileName, fileType and fileSize are required');
     }
+
+    const parsed = uploadSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.issues[0].message);
+    }
+
+    const result = await this.filesService.presignUpload(auth.userId, parsed.data);
+    throwIfError(result);
+    return result;
   }
 
   // POST /api/files/confirm
   @Post('confirm')
-  async confirm(
-    @CurrentUser() auth: TokenPayload,
-    @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    try {
-      const raw = body as Record<string, unknown>;
-
-      if (!raw?.['key'] || !raw?.['fileName'] || !raw?.['fileType'] || !raw?.['fileSize']) {
-        res.status(400);
-        return { error: 'key, fileName, fileType and fileSize are required' };
-      }
-
-      const parsed = confirmSchema.safeParse(body);
-      if (!parsed.success) {
-        res.status(400);
-        return { error: parsed.error.issues[0].message };
-      }
-
-      const result = await this.filesService.confirmUpload(auth.userId, parsed.data);
-      if ('error' in result) {
-        res.status(result.status as number);
-        return { error: result.error };
-      }
-      res.status(201);
-      return { file: result.file };
-    } catch (err) {
-      console.error('POST /api/files/confirm error:', err);
-      res.status(500);
-      return { error: 'Failed to confirm upload' };
+  @HttpCode(201)
+  async confirm(@CurrentUser() auth: TokenPayload, @Body() body: unknown) {
+    const raw = body as Record<string, unknown>;
+    if (!raw?.['key'] || !raw?.['fileName'] || !raw?.['fileType'] || !raw?.['fileSize']) {
+      throw new BadRequestException('key, fileName, fileType and fileSize are required');
     }
+
+    const parsed = confirmSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.issues[0].message);
+    }
+
+    const result = await this.filesService.confirmUpload(auth.userId, parsed.data);
+    throwIfError(result);
+    return { file: result.file };
   }
 
   // GET /api/files/files?folderId=<id|null>
@@ -99,20 +68,10 @@ export class FilesController {
   async listFiles(
     @CurrentUser() auth: TokenPayload,
     @Query('folderId') folderId: string | undefined,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    try {
-      const result = await this.filesService.listFiles(auth.userId, folderId);
-      if ('error' in result) {
-        res.status(result.status as number);
-        return { error: result.error };
-      }
-      return { files: result.files };
-    } catch (err) {
-      console.error('GET /api/files/files error:', err);
-      res.status(500);
-      return { error: 'Failed to fetch files' };
-    }
+    const result = await this.filesService.listFiles(auth.userId, folderId);
+    throwIfError(result);
+    return { files: result.files };
   }
 
   // PATCH /api/files/files/:id
@@ -121,57 +80,31 @@ export class FilesController {
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
     @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        res.status(400);
-        return { error: 'Invalid file ID' };
-      }
-
-      const parsed = updateFileSchema.safeParse(body);
-      if (!parsed.success) {
-        res.status(400);
-        return { error: parsed.error.issues[0].message };
-      }
-
-      const result = await this.filesService.updateFile(auth.userId, id, parsed.data);
-      if ('error' in result) {
-        res.status(result.status as number);
-        return { error: result.error };
-      }
-      return { file: result.file };
-    } catch (err) {
-      console.error('PATCH /api/files/files/:id error:', err);
-      res.status(500);
-      return { error: 'Failed to update file' };
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid file ID');
     }
+
+    const parsed = updateFileSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.issues[0].message);
+    }
+
+    const result = await this.filesService.updateFile(auth.userId, id, parsed.data);
+    throwIfError(result);
+    return { file: result.file };
   }
 
   // DELETE /api/files/files/:id
   @Delete('files/:id')
-  async deleteFile(
-    @CurrentUser() auth: TokenPayload,
-    @Param('id') id: string,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        res.status(400);
-        return { error: 'Invalid file ID' };
-      }
-
-      const result = await this.filesService.deleteFile(auth.userId, id);
-      if ('error' in result) {
-        res.status(result.status as number);
-        return { error: result.error };
-      }
-      return { success: result.success, message: result.message };
-    } catch (err) {
-      console.error('DELETE /api/files/files/:id error:', err);
-      res.status(500);
-      return { error: 'Failed to delete file' };
+  async deleteFile(@CurrentUser() auth: TokenPayload, @Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid file ID');
     }
+
+    const result = await this.filesService.deleteFile(auth.userId, id);
+    throwIfError(result);
+    return { success: result.success, message: result.message };
   }
 
   // PATCH /api/files/files/:id/favourite
@@ -180,33 +113,21 @@ export class FilesController {
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
     @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        res.status(400);
-        return { error: 'Invalid file ID' };
-      }
-
-      if (typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean') {
-        res.status(400);
-        return { error: 'isFavourite must be a boolean' };
-      }
-
-      const result = await this.filesService.toggleFavourite(
-        auth.userId,
-        id,
-        (body as Record<string, unknown>)['isFavourite'] as boolean,
-      );
-      if ('error' in result) {
-        res.status(result.status as number);
-        return { error: result.error };
-      }
-      return { file: result.file };
-    } catch (err) {
-      console.error('PATCH /api/files/files/:id/favourite error:', err);
-      res.status(500);
-      return { error: 'Failed to update favourite' };
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid file ID');
     }
+
+    if (typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean') {
+      throw new BadRequestException('isFavourite must be a boolean');
+    }
+
+    const result = await this.filesService.toggleFavourite(
+      auth.userId,
+      id,
+      (body as Record<string, unknown>)['isFavourite'] as boolean,
+    );
+    throwIfError(result);
+    return { file: result.file };
   }
 }

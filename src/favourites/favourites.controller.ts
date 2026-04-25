@@ -3,8 +3,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpException,
-  InternalServerErrorException,
   Patch,
   UseGuards,
 } from '@nestjs/common';
@@ -20,11 +18,7 @@ export class FavouritesController {
 
   @Get()
   async listFavourites(@CurrentUser() auth: TokenPayload) {
-    try {
-      return await this.favouritesService.listFavourites(auth.userId);
-    } catch {
-      throw new InternalServerErrorException({ error: 'Failed to fetch favourites' });
-    }
+    return this.favouritesService.listFavourites(auth.userId);
   }
 
   @Patch('bulk')
@@ -35,25 +29,20 @@ export class FavouritesController {
     const { fileIds = [], folderIds = [], isFavourite } = body;
 
     if (typeof isFavourite !== 'boolean') {
-      throw new BadRequestException({ error: 'isFavourite must be a boolean' });
+      throw new BadRequestException('isFavourite must be a boolean');
     }
     if (!Array.isArray(fileIds) || !Array.isArray(folderIds)) {
-      throw new BadRequestException({ error: 'fileIds and folderIds must be arrays' });
+      throw new BadRequestException('fileIds and folderIds must be arrays');
     }
     if ((fileIds as unknown[]).length === 0 && (folderIds as unknown[]).length === 0) {
-      throw new BadRequestException({ error: 'Provide at least one fileId or folderId' });
+      throw new BadRequestException('Provide at least one fileId or folderId');
     }
 
-    try {
-      return await this.favouritesService.bulkToggle(
-        auth.userId,
-        fileIds as string[],
-        folderIds as string[],
-        isFavourite,
-      );
-    } catch (err) {
-      if (err instanceof HttpException) throw err;
-      throw new InternalServerErrorException({ error: 'Failed to update favourites' });
-    }
+    return this.favouritesService.bulkToggle(
+      auth.userId,
+      fileIds as string[],
+      folderIds as string[],
+      isFavourite,
+    );
   }
 }
