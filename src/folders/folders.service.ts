@@ -53,7 +53,7 @@ export class FoldersService {
     const folder = await this.folderModel.create({
       userId,
       name,
-      parentId: parentId ?? null,
+      parentId: parentId ? new Types.ObjectId(parentId) : null,
     });
     return { folder, status: 201 } as const;
   }
