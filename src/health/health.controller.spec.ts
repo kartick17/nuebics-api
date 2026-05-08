@@ -6,9 +6,7 @@ describe('HealthController', () => {
   const makeController = async (readyState: number) => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
-      providers: [
-        { provide: getConnectionToken(), useValue: { readyState } },
-      ],
+      providers: [{ provide: getConnectionToken(), useValue: { readyState } }]
     }).compile();
     return module.get<HealthController>(HealthController);
   };
@@ -24,7 +22,7 @@ describe('HealthController', () => {
   it('throws 503 when mongo readyState is not 1', async () => {
     const controller = await makeController(0);
     await expect(controller.check()).rejects.toMatchObject({
-      status: 503,
+      status: 503
     });
   });
 });

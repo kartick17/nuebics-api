@@ -1,4 +1,11 @@
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { VerificationService } from './verification.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -26,13 +33,18 @@ export class VerificationController {
   @HttpCode(200)
   async verifyEmail(
     @CurrentUser() auth: TokenPayload,
-    @Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpInput,
+    @Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpInput
   ) {
-    const { user, already } = await this.verification.verifyEmail(auth.userId, dto.code);
+    const { user, already } = await this.verification.verifyEmail(
+      auth.userId,
+      dto.code
+    );
     return {
       ok: true,
-      message: already ? 'Email already verified.' : 'Email verified successfully.',
-      user_details: toUserDetails(user),
+      message: already
+        ? 'Email already verified.'
+        : 'Email verified successfully.',
+      user_details: toUserDetails(user)
     };
   }
 
@@ -45,13 +57,18 @@ export class VerificationController {
   @HttpCode(200)
   async verifyPhone(
     @CurrentUser() auth: TokenPayload,
-    @Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpInput,
+    @Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpInput
   ) {
-    const { user, already } = await this.verification.verifyPhone(auth.userId, dto.code);
+    const { user, already } = await this.verification.verifyPhone(
+      auth.userId,
+      dto.code
+    );
     return {
       ok: true,
-      message: already ? 'Phone already verified.' : 'Phone verified successfully.',
-      user_details: toUserDetails(user),
+      message: already
+        ? 'Phone already verified.'
+        : 'Phone verified successfully.',
+      user_details: toUserDetails(user)
     };
   }
 
@@ -61,11 +78,17 @@ export class VerificationController {
   @Throttle({ resend: { limit: 3, ttl: 15 * 60 * 1000 } })
   async resend(
     @CurrentUser() auth: TokenPayload,
-    @Body(new ZodValidationPipe(resendOtpSchema)) dto: ResendOtpInput,
+    @Body(new ZodValidationPipe(resendOtpSchema)) dto: ResendOtpInput
   ) {
-    const { already } = await this.verification.resendOtp(auth.userId, dto.channel);
+    const { already } = await this.verification.resendOtp(
+      auth.userId,
+      dto.channel
+    );
     return already
-      ? { ok: true, message: `${dto.channel === 'email' ? 'Email' : 'Phone'} already verified.` }
+      ? {
+          ok: true,
+          message: `${dto.channel === 'email' ? 'Email' : 'Phone'} already verified.`
+        }
       : { ok: true, message: 'Verification code sent.' };
   }
 }

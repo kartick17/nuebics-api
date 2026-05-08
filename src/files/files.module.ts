@@ -12,12 +12,12 @@ import { FoldersModule } from '../folders/folders.module';
   imports: [
     MongooseModule.forFeature([
       { name: File.name, schema: FileSchema },
-      { name: Folder.name, schema: FolderSchema },
+      { name: Folder.name, schema: FolderSchema }
     ]),
-    FoldersModule,
+    FoldersModule
   ],
   controllers: [FilesController, DownloadController, ContentsController],
   providers: [FilesService],
-  exports: [FilesService, MongooseModule],
+  exports: [FilesService, MongooseModule]
 })
 export class FilesModule {}

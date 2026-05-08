@@ -20,6 +20,6 @@ export function toUserDetails(user: UserDocument): UserDetails {
     isEmailVerified: !!user.isEmailVerified,
     isPhoneVerified: !!user.isPhoneVerified,
     vaultCredentialVerifier: !!user.vaultCredentialVerifier,
-    createdAt: user.createdAt,
+    createdAt: user.createdAt
   };
 }

@@ -9,10 +9,10 @@ export const folderNameSchema = z
   .min(1, 'Folder name is required')
   .max(255, 'Folder name must be 255 characters or fewer')
   .refine((v) => !INVALID_CHARS.test(v), {
-    message: 'Folder name cannot contain / \\ : * ? " < > |',
+    message: 'Folder name cannot contain / \\ : * ? " < > |'
   })
   .refine((v) => !RESERVED_NAMES.test(v), {
-    message: 'This name is reserved by the system',
+    message: 'This name is reserved by the system'
   });
 
 export const fileNameSchema = z
@@ -21,8 +21,8 @@ export const fileNameSchema = z
   .min(1, 'File name is required')
   .max(255, 'File name must be 255 characters or fewer')
   .refine((v) => !INVALID_CHARS.test(v), {
-    message: 'File name cannot contain / \\ : * ? " < > |',
+    message: 'File name cannot contain / \\ : * ? " < > |'
   })
   .refine((v) => !RESERVED_NAMES.test(v), {
-    message: 'This name is reserved by the system',
+    message: 'This name is reserved by the system'
   });

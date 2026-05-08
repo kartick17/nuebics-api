@@ -6,7 +6,7 @@ import {
   Param,
   Post,
   Query,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { TrashService } from './trash.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -28,7 +28,7 @@ export class TrashController {
   async restore(
     @Param('id') id: string,
     @Query('type') type: string,
-    @CurrentUser() auth: TokenPayload,
+    @CurrentUser() auth: TokenPayload
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid ID');

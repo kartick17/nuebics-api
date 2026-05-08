@@ -10,9 +10,9 @@ import type { Env } from '../../config/env.validation';
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({
         uri: config.get('MONGODB_URI', { infer: true }),
-        serverSelectionTimeoutMS: 5000,
-      }),
-    }),
-  ],
+        serverSelectionTimeoutMS: 5000
+      })
+    })
+  ]
 })
 export class DatabaseModule {}

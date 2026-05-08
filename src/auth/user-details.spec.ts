@@ -11,7 +11,7 @@ describe('toUserDetails', () => {
       isEmailVerified: true,
       isPhoneVerified: false,
       vaultCredentialVerifier: 'ciphertext',
-      createdAt,
+      createdAt
     };
     expect(toUserDetails(user)).toEqual({
       id: 'abc',
@@ -21,7 +21,7 @@ describe('toUserDetails', () => {
       isEmailVerified: true,
       isPhoneVerified: false,
       vaultCredentialVerifier: true,
-      createdAt,
+      createdAt
     });
   });
 
@@ -48,13 +48,14 @@ describe('toUserDetails', () => {
 
   it('does not leak passwordHash, OTP codes, or raw vault ciphertext', () => {
     const user: any = {
-      _id: 'a', name: 'a',
+      _id: 'a',
+      name: 'a',
       passwordHash: 'secret-hash',
       emailVerificationCode: '123456',
       emailVerificationExpires: new Date(),
       phoneVerificationCode: '654321',
       phoneVerificationExpires: new Date(),
-      vaultCredentialVerifier: 'cipher',
+      vaultCredentialVerifier: 'cipher'
     };
     const out: any = toUserDetails(user);
     expect(out.passwordHash).toBeUndefined();
@@ -80,7 +81,7 @@ describe('toUserDetails', () => {
       emailVerificationCode: '111',
       emailVerificationExpires: new Date(),
       phoneVerificationCode: '222',
-      phoneVerificationExpires: new Date(),
+      phoneVerificationExpires: new Date()
     };
     const out = toUserDetails(user);
     expect(Object.keys(out).sort()).toEqual(
@@ -92,8 +93,8 @@ describe('toUserDetails', () => {
         'isPhoneVerified',
         'name',
         'phone',
-        'vaultCredentialVerifier',
-      ].sort(),
+        'vaultCredentialVerifier'
+      ].sort()
     );
   });
 });

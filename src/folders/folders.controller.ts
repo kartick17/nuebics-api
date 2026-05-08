@@ -9,7 +9,7 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -28,7 +28,7 @@ export class FoldersController {
   @Get()
   async list(
     @CurrentUser() auth: TokenPayload,
-    @Query('parentId') parentId: string | undefined,
+    @Query('parentId') parentId: string | undefined
   ) {
     const result = await this.foldersService.listFolders(auth.userId, parentId);
     throwIfError(result);
@@ -42,7 +42,10 @@ export class FoldersController {
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues[0].message);
     }
-    const result = await this.foldersService.createFolder(auth.userId, parsed.data);
+    const result = await this.foldersService.createFolder(
+      auth.userId,
+      parsed.data
+    );
     throwIfError(result);
     return { folder: result.folder };
   }
@@ -58,7 +61,7 @@ export class FoldersController {
   async update(
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: unknown
   ) {
     if (!id || id === 'undefined' || !Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid folder ID');
@@ -69,7 +72,11 @@ export class FoldersController {
       throw new BadRequestException(parsed.error.issues[0].message);
     }
 
-    const result = await this.foldersService.updateFolder(auth.userId, id, parsed.data);
+    const result = await this.foldersService.updateFolder(
+      auth.userId,
+      id,
+      parsed.data
+    );
     throwIfError(result);
     return { folder: result.folder };
   }
@@ -85,20 +92,22 @@ export class FoldersController {
   async favourite(
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: unknown
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid folder ID');
     }
 
-    if (typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean') {
+    if (
+      typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean'
+    ) {
       throw new BadRequestException('isFavourite must be a boolean');
     }
 
     const result = await this.foldersService.toggleFavourite(
       auth.userId,
       id,
-      (body as Record<string, unknown>)['isFavourite'] as boolean,
+      (body as Record<string, unknown>)['isFavourite'] as boolean
     );
     throwIfError(result);
     return { folder: result.folder };

@@ -27,8 +27,12 @@ export class CryptoService {
 
   constructor(config: ConfigService<Env, true>) {
     this.cryptoSecret = config.get('CRYPTO_SECRET', { infer: true });
-    this.accessSecret = new TextEncoder().encode(config.get('JWT_ACCESS_SECRET', { infer: true }));
-    this.refreshSecret = new TextEncoder().encode(config.get('JWT_REFRESH_SECRET', { infer: true }));
+    this.accessSecret = new TextEncoder().encode(
+      config.get('JWT_ACCESS_SECRET', { infer: true })
+    );
+    this.refreshSecret = new TextEncoder().encode(
+      config.get('JWT_REFRESH_SECRET', { infer: true })
+    );
   }
 
   encryptToken(token: string): string {

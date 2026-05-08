@@ -8,8 +8,10 @@ import { validateEnv } from '../../config/env.validation';
 const makeCtx = (authHeader?: string) =>
   ({
     switchToHttp: () => ({
-      getRequest: () => ({ headers: authHeader ? { authorization: authHeader } : {} }),
-    }),
+      getRequest: () => ({
+        headers: authHeader ? { authorization: authHeader } : {}
+      })
+    })
   }) as unknown as ExecutionContext;
 
 describe('JwtAuthGuard', () => {
@@ -28,8 +30,10 @@ describe('JwtAuthGuard', () => {
     process.env.CRON_SECRET ||= 'x';
 
     const mod = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })],
-      providers: [JwtAuthGuard, CryptoService],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })
+      ],
+      providers: [JwtAuthGuard, CryptoService]
     }).compile();
 
     guard = mod.get(JwtAuthGuard);
@@ -41,11 +45,15 @@ describe('JwtAuthGuard', () => {
   });
 
   it('rejects non-Bearer', async () => {
-    await expect(guard.canActivate(makeCtx('Basic abc'))).rejects.toThrow('Unauthorized');
+    await expect(guard.canActivate(makeCtx('Basic abc'))).rejects.toThrow(
+      'Unauthorized'
+    );
   });
 
   it('rejects invalid token', async () => {
-    await expect(guard.canActivate(makeCtx('Bearer garbage'))).rejects.toThrow('Unauthorized');
+    await expect(guard.canActivate(makeCtx('Bearer garbage'))).rejects.toThrow(
+      'Unauthorized'
+    );
   });
 
   it('accepts valid bearer token and attaches req.user', async () => {

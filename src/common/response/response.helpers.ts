@@ -12,7 +12,11 @@ export function err(message: string, status: number) {
 export function validationErr(error: ZodError) {
   return {
     __status: 400,
-    body: { ok: false, error: error.message ?? 'Validation failed', fields: error.name },
+    body: {
+      ok: false,
+      error: error.message ?? 'Validation failed',
+      fields: error.name
+    }
   } as const;
 }
 
@@ -22,9 +26,15 @@ export const notFound = (thing = 'Resource') => err(`${thing} not found`, 404);
 export function tooManyRequests(resetAt: number, res?: Response) {
   const retryAfterSeconds = Math.ceil((resetAt - Date.now()) / 1000);
   if (res) res.setHeader('Retry-After', String(retryAfterSeconds));
-  return err(`Too many attempts. Try again in ${retryAfterSeconds} seconds.`, 429);
+  return err(
+    `Too many attempts. Try again in ${retryAfterSeconds} seconds.`,
+    429
+  );
 }
 
-export function send(res: Response, payload: { __status: number; body: object }) {
+export function send(
+  res: Response,
+  payload: { __status: number; body: object }
+) {
   res.status(payload.__status).json(payload.body);
 }

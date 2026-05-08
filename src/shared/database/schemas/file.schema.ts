@@ -26,7 +26,12 @@ export class File {
   @Prop({ default: false, index: true })
   isFavourite: boolean;
 
-  @Prop({ type: String, enum: ['active', 'trashed'], default: 'active', index: true })
+  @Prop({
+    type: String,
+    enum: ['active', 'trashed'],
+    default: 'active',
+    index: true
+  })
   status: 'active' | 'trashed';
 
   @Prop({ type: Date, default: null })

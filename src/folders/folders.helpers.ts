@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { File, FileDocument } from '../shared/database/schemas/file.schema';
-import { Folder, FolderDocument } from '../shared/database/schemas/folder.schema';
+import {
+  Folder,
+  FolderDocument
+} from '../shared/database/schemas/folder.schema';
 import { S3Service } from '../shared/s3/s3.service';
 import type { Env } from '../config/env.validation';
 
@@ -11,9 +14,10 @@ import type { Env } from '../config/env.validation';
 export class FoldersHelpers {
   constructor(
     @InjectModel(File.name) private readonly fileModel: Model<FileDocument>,
-    @InjectModel(Folder.name) private readonly folderModel: Model<FolderDocument>,
+    @InjectModel(Folder.name)
+    private readonly folderModel: Model<FolderDocument>,
     private readonly s3: S3Service,
-    private readonly config: ConfigService<Env, true>,
+    private readonly config: ConfigService<Env, true>
   ) {}
 
   get trashRetentionMs(): number {
@@ -27,22 +31,30 @@ export class FoldersHelpers {
     const oid = new Types.ObjectId(folderId);
     await this.fileModel.updateMany(
       { userId, folderId: oid, status: 'active' },
-      { status: 'trashed', deletedAt: now },
+      { status: 'trashed', deletedAt: now }
     );
-    const subs = await this.folderModel.find({ userId, parentId: oid, status: 'active' }).lean();
-    for (const s of subs) await this.trashFolderRecursive(s._id.toString(), userId);
+    const subs = await this.folderModel
+      .find({ userId, parentId: oid, status: 'active' })
+      .lean();
+    for (const s of subs)
+      await this.trashFolderRecursive(s._id.toString(), userId);
     await this.folderModel.findOneAndUpdate(
       { _id: folderId, userId },
-      { status: 'trashed', deletedAt: now },
+      { status: 'trashed', deletedAt: now }
     );
   }
 
-  async getDescendantFolderIds(folderId: string, userId: string): Promise<string[]> {
+  async getDescendantFolderIds(
+    folderId: string,
+    userId: string
+  ): Promise<string[]> {
     const out: string[] = [];
     const queue = [folderId];
     while (queue.length) {
       const curr = queue.shift()!;
-      const kids = await this.folderModel.find({ parentId: curr, userId }, { _id: 1 }).lean();
+      const kids = await this.folderModel
+        .find({ parentId: curr, userId }, { _id: 1 })
+        .lean();
       for (const k of kids) {
         out.push(k._id.toString());
         queue.push(k._id.toString());
@@ -51,7 +63,11 @@ export class FoldersHelpers {
     return out;
   }
 
-  async isDescendantOf(targetId: string, ancestorId: string, userId: string): Promise<boolean> {
+  async isDescendantOf(
+    targetId: string,
+    ancestorId: string,
+    userId: string
+  ): Promise<boolean> {
     if (targetId === ancestorId) return true;
     const desc = await this.getDescendantFolderIds(ancestorId, userId);
     return desc.includes(targetId);
@@ -64,11 +80,17 @@ export class FoldersHelpers {
       .find({ userId, folderId: { $in: all } }, { _id: 1, key: 1 })
       .lean();
     await this.s3.deleteMany(files.map((f) => f.key));
-    const fileResult = await this.fileModel.deleteMany({ userId, folderId: { $in: all } });
-    const folderResult = await this.folderModel.deleteMany({ userId, _id: { $in: all } });
+    const fileResult = await this.fileModel.deleteMany({
+      userId,
+      folderId: { $in: all }
+    });
+    const folderResult = await this.folderModel.deleteMany({
+      userId,
+      _id: { $in: all }
+    });
     return {
       deletedFolders: folderResult.deletedCount,
-      deletedFiles: fileResult.deletedCount,
+      deletedFiles: fileResult.deletedCount
     };
   }
 
@@ -87,17 +109,23 @@ export class FoldersHelpers {
     return path;
   }
 
-  async restoreFolderRecursive(folderId: string, userId: string): Promise<void> {
+  async restoreFolderRecursive(
+    folderId: string,
+    userId: string
+  ): Promise<void> {
     const oid = new Types.ObjectId(folderId);
     await this.fileModel.updateMany(
       { userId, folderId: oid, status: 'trashed' },
-      { status: 'active', deletedAt: null },
+      { status: 'active', deletedAt: null }
     );
-    const subs = await this.folderModel.find({ userId, parentId: oid, status: 'trashed' }).lean();
-    for (const s of subs) await this.restoreFolderRecursive(s._id.toString(), userId);
+    const subs = await this.folderModel
+      .find({ userId, parentId: oid, status: 'trashed' })
+      .lean();
+    for (const s of subs)
+      await this.restoreFolderRecursive(s._id.toString(), userId);
     await this.folderModel.findOneAndUpdate(
       { _id: folderId, userId },
-      { status: 'active', deletedAt: null },
+      { status: 'active', deletedAt: null }
     );
   }
 
@@ -111,12 +139,12 @@ export class FoldersHelpers {
     const { deletedCount: df = 0 } = await this.fileModel.deleteMany({
       ...userFilter,
       status: 'trashed',
-      deletedAt: { $lte: cutoff },
+      deletedAt: { $lte: cutoff }
     });
     const { deletedCount: dfd = 0 } = await this.folderModel.deleteMany({
       ...userFilter,
       status: 'trashed',
-      deletedAt: { $lte: cutoff },
+      deletedAt: { $lte: cutoff }
     });
     return { files: df, folders: dfd };
   }

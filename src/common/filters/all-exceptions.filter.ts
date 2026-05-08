@@ -1,4 +1,10 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  Logger
+} from '@nestjs/common';
 import { Response } from 'express';
 
 interface MongoLikeError {
@@ -17,13 +23,16 @@ function extractMessage(resp: unknown, fallback: string): string {
     // Prefer `message` (Nest default for `new HttpException("text")`); fall back to
     // `error` (our custom `new HttpException({ error: "text" })` payloads).
     if (typeof r.message === 'string') return r.message;
-    if (Array.isArray(r.message) && typeof r.message[0] === 'string') return r.message[0];
+    if (Array.isArray(r.message) && typeof r.message[0] === 'string')
+      return r.message[0];
     if (typeof r.error === 'string') return r.error;
   }
   return fallback;
 }
 
-function friendlyDuplicateMessage(keyPattern: Record<string, unknown> | undefined): string {
+function friendlyDuplicateMessage(
+  keyPattern: Record<string, unknown> | undefined
+): string {
   const keys = keyPattern ? Object.keys(keyPattern).sort().join(',') : '';
   switch (keys) {
     case 'email':
@@ -60,7 +69,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = friendlyDuplicateMessage(e.keyPattern);
       } else if (e?.name === 'CastError') {
         status = 400;
-        message = e.path === '_id' ? 'Invalid ID' : `Invalid ${e.path ?? 'value'}`;
+        message =
+          e.path === '_id' ? 'Invalid ID' : `Invalid ${e.path ?? 'value'}`;
       } else if (e?.name === 'ValidationError' && e.errors) {
         status = 400;
         const firstKey = Object.keys(e.errors)[0];

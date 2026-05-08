@@ -10,11 +10,11 @@ import { FoldersModule } from '../folders/folders.module';
   imports: [
     MongooseModule.forFeature([
       { name: File.name, schema: FileSchema },
-      { name: Folder.name, schema: FolderSchema },
+      { name: Folder.name, schema: FolderSchema }
     ]),
-    FoldersModule,
+    FoldersModule
   ],
   controllers: [TrashController],
-  providers: [TrashService],
+  providers: [TrashService]
 })
 export class TrashModule {}

@@ -20,7 +20,7 @@ import { HealthModule } from './health/health.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      validate: validateEnv,
+      validate: validateEnv
     }),
     DatabaseModule,
     HealthModule,
@@ -32,9 +32,9 @@ import { HealthModule } from './health/health.module';
     FilesModule,
     TrashModule,
     FavouritesModule,
-    CronModule,
+    CronModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService]
 })
 export class AppModule {}

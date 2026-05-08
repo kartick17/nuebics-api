@@ -11,27 +11,27 @@ import { UserChannelThrottlerGuard } from '../common/guards/user-channel-throttl
 import { User, UserSchema } from '../shared/database/schemas/user.schema';
 import {
   RefreshToken,
-  RefreshTokenSchema,
+  RefreshTokenSchema
 } from '../shared/database/schemas/refresh-token.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
-      { name: RefreshToken.name, schema: RefreshTokenSchema },
-    ]),
+      { name: RefreshToken.name, schema: RefreshTokenSchema }
+    ])
   ],
   controllers: [
     AuthController,
     VerificationController,
-    VaultPasswordController,
+    VaultPasswordController
   ],
   providers: [
     AuthService,
     VerificationService,
     VaultPasswordService,
     JwtAuthGuard,
-    UserChannelThrottlerGuard,
-  ],
+    UserChannelThrottlerGuard
+  ]
 })
 export class AuthModule {}

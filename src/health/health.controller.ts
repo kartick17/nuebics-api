@@ -12,13 +12,13 @@ export class HealthController {
     if (!mongoUp) {
       throw new HttpException(
         { status: 'error', mongo: 'down', uptime: process.uptime() },
-        HttpStatus.SERVICE_UNAVAILABLE,
+        HttpStatus.SERVICE_UNAVAILABLE
       );
     }
     return {
       status: 'ok',
       mongo: 'up',
-      uptime: process.uptime(),
+      uptime: process.uptime()
     };
   }
 }

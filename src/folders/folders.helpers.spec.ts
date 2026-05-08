@@ -15,14 +15,14 @@ describe('FoldersHelpers.isDescendantOf', () => {
   const subtreeQueries: Record<string, { _id: string }[]> = {
     A: [{ _id: 'B' }],
     B: [{ _id: 'C' }],
-    C: [],
+    C: []
   };
 
   const folderModelMock = {
     find: (filter: any) => {
       const parent = filter.parentId;
       return { lean: async () => subtreeQueries[parent] ?? [] };
-    },
+    }
   };
 
   beforeAll(async () => {
@@ -37,13 +37,15 @@ describe('FoldersHelpers.isDescendantOf', () => {
     process.env.CRON_SECRET ||= 'x';
 
     const mod = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })
+      ],
       providers: [
         FoldersHelpers,
         { provide: getModelToken(File.name), useValue: {} },
         { provide: getModelToken(Folder.name), useValue: folderModelMock },
-        { provide: S3Service, useValue: { deleteMany: async () => undefined } },
-      ],
+        { provide: S3Service, useValue: { deleteMany: async () => undefined } }
+      ]
     }).compile();
 
     helpers = mod.get(FoldersHelpers);

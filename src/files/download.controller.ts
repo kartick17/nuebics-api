@@ -6,7 +6,7 @@ import {
   NotFoundException,
   Param,
   Post,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,7 +16,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { TokenPayload } from '../shared/crypto/crypto.service';
 import { File, FileDocument } from '../shared/database/schemas/file.schema';
-import { Folder, FolderDocument } from '../shared/database/schemas/folder.schema';
+import {
+  Folder,
+  FolderDocument
+} from '../shared/database/schemas/folder.schema';
 import { S3Service } from '../shared/s3/s3.service';
 import { FoldersHelpers } from '../folders/folders.helpers';
 import type { Env } from '../config/env.validation';
@@ -26,10 +29,11 @@ import type { Env } from '../config/env.validation';
 export class DownloadController {
   constructor(
     @InjectModel(File.name) private readonly fileModel: Model<FileDocument>,
-    @InjectModel(Folder.name) private readonly folderModel: Model<FolderDocument>,
+    @InjectModel(Folder.name)
+    private readonly folderModel: Model<FolderDocument>,
     private readonly s3: S3Service,
     private readonly foldersHelpers: FoldersHelpers,
-    private readonly config: ConfigService<Env, true>,
+    private readonly config: ConfigService<Env, true>
   ) {}
 
   // POST /api/files/download
@@ -37,7 +41,7 @@ export class DownloadController {
   @Post()
   async batchDownload(
     @CurrentUser() auth: TokenPayload,
-    @Body() body: unknown,
+    @Body() body: unknown
   ) {
     const raw = body as Record<string, unknown>;
     const fileIds = raw?.['fileIds'] ?? [];
@@ -47,15 +51,18 @@ export class DownloadController {
       throw new BadRequestException('fileIds and folderIds must be arrays');
     }
 
-    if ((fileIds as unknown[]).length === 0 && (folderIds as unknown[]).length === 0) {
+    if (
+      (fileIds as unknown[]).length === 0 &&
+      (folderIds as unknown[]).length === 0
+    ) {
       throw new BadRequestException('Provide at least one fileId or folderId');
     }
 
     const validFileIds = (fileIds as unknown[]).filter((id) =>
-      Types.ObjectId.isValid(id as string),
+      Types.ObjectId.isValid(id as string)
     ) as string[];
     const validFolderIds = (folderIds as unknown[]).filter((id) =>
-      Types.ObjectId.isValid(id as string),
+      Types.ObjectId.isValid(id as string)
     ) as string[];
 
     const { userId } = auth;
@@ -64,29 +71,38 @@ export class DownloadController {
 
     for (const folderId of validFolderIds) {
       const rootFolder = await this.folderModel
-        .findOne({ _id: folderId, userId, status: 'active' }, { _id: 1, name: 1 })
+        .findOne(
+          { _id: folderId, userId, status: 'active' },
+          { _id: 1, name: 1 }
+        )
         .lean();
 
       if (!rootFolder) continue;
 
-      const descendantIds = await this.foldersHelpers.getDescendantFolderIds(folderId, userId);
+      const descendantIds = await this.foldersHelpers.getDescendantFolderIds(
+        folderId,
+        userId
+      );
       const allSubIds = [folderId, ...descendantIds];
 
       const subtreeFolders = await this.folderModel
         .find(
           { _id: { $in: allSubIds }, userId },
-          { _id: 1, name: 1, parentId: 1 },
+          { _id: 1, name: 1, parentId: 1 }
         )
         .lean();
 
-      const folderDocMap = new Map(subtreeFolders.map((f) => [f._id.toString(), f]));
+      const folderDocMap = new Map(
+        subtreeFolders.map((f) => [f._id.toString(), f])
+      );
 
       const getRelativePath = (id: string): string => {
         if (id === folderId) return rootFolder.name;
         const f = folderDocMap.get(id);
         if (!f) return rootFolder.name;
         const parentId = f.parentId?.toString();
-        if (!parentId || parentId === folderId) return `${rootFolder.name}/${f.name}`;
+        if (!parentId || parentId === folderId)
+          return `${rootFolder.name}/${f.name}`;
         return `${getRelativePath(parentId)}/${f.name}`;
       };
 
@@ -95,9 +111,9 @@ export class DownloadController {
           {
             userId,
             folderId: { $in: allSubIds.map((id) => new Types.ObjectId(id)) },
-            status: 'active',
+            status: 'active'
           },
-          { _id: 1, key: 1, name: 1, folderId: 1 },
+          { _id: 1, key: 1, name: 1, folderId: 1 }
         )
         .lean();
 
@@ -121,7 +137,9 @@ export class DownloadController {
 
     const MAX_FILES = this.config.get('MAX_FILES', { infer: true });
     if (pathMap.size > MAX_FILES) {
-      throw new BadRequestException(`Selection exceeds the ${MAX_FILES}-file download limit`);
+      throw new BadRequestException(
+        `Selection exceeds the ${MAX_FILES}-file download limit`
+      );
     }
 
     const allFileIds = [...pathMap.keys()];
@@ -130,9 +148,9 @@ export class DownloadController {
         {
           _id: { $in: allFileIds.map((id) => new Types.ObjectId(id)) },
           userId,
-          status: 'active',
+          status: 'active'
         },
-        { _id: 1, key: 1, name: 1 },
+        { _id: 1, key: 1, name: 1 }
       )
       .lean();
 
@@ -142,7 +160,7 @@ export class DownloadController {
         const prefix = pathMap.get(file._id.toString()) ?? '';
         const path = prefix ? `${prefix}/${file.name}` : file.name;
         return { id: file._id.toString(), name: file.name, path, url };
-      }),
+      })
     );
 
     return { items };
@@ -152,7 +170,7 @@ export class DownloadController {
   @Get(':id')
   async singleDownload(
     @CurrentUser() auth: TokenPayload,
-    @Param('id') id: string,
+    @Param('id') id: string
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid file ID');

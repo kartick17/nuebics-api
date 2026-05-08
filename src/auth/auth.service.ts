@@ -2,7 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -11,11 +11,11 @@ import { createHash, randomUUID } from 'crypto';
 import { User, UserDocument } from '../shared/database/schemas/user.schema';
 import {
   RefreshToken,
-  RefreshTokenDocument,
+  RefreshTokenDocument
 } from '../shared/database/schemas/refresh-token.schema';
 import {
   CryptoService,
-  REFRESH_TOKEN_SECONDS,
+  REFRESH_TOKEN_SECONDS
 } from '../shared/crypto/crypto.service';
 import type { SignupInput } from './dto/signup.schema';
 import type { LoginInput } from './dto/login.schema';
@@ -37,7 +37,7 @@ export class AuthService {
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     @InjectModel(RefreshToken.name)
     private readonly refreshTokenModel: Model<RefreshTokenDocument>,
-    private readonly crypto: CryptoService,
+    private readonly crypto: CryptoService
   ) {}
 
   async signup(input: SignupInput): Promise<void> {
@@ -66,7 +66,7 @@ export class AuthService {
       emailVerificationCode: email ? emailOTP : null,
       emailVerificationExpires: email ? expiry : null,
       phoneVerificationCode: phone ? phoneOTP : null,
-      phoneVerificationExpires: phone ? expiry : null,
+      phoneVerificationExpires: phone ? expiry : null
     });
   }
 
@@ -88,11 +88,11 @@ export class AuthService {
     const sessionId = randomUUID();
     const accessToken = await this.crypto.signAccessToken(
       user._id.toString(),
-      sessionId,
+      sessionId
     );
     const refreshToken = await this.crypto.signRefreshToken(
       user._id.toString(),
-      sessionId,
+      sessionId
     );
 
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_SECONDS * 1000);
@@ -103,10 +103,10 @@ export class AuthService {
           sessionId,
           userId: user._id,
           tokenHash: hashToken(refreshToken),
-          expiresAt,
-        },
+          expiresAt
+        }
       },
-      { upsert: true },
+      { upsert: true }
     );
 
     return { user, accessToken, refreshToken };
@@ -123,7 +123,7 @@ export class AuthService {
     const newAccessToken = await this.crypto.signAccessToken(userId, sessionId);
     const newRefreshToken = await this.crypto.signRefreshToken(
       userId,
-      sessionId,
+      sessionId
     );
     const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_SECONDS * 1000);
 
@@ -131,14 +131,14 @@ export class AuthService {
       {
         sessionId,
         tokenHash: hashToken(refreshToken),
-        expiresAt: { $gt: new Date() },
+        expiresAt: { $gt: new Date() }
       },
       {
         $set: {
           tokenHash: hashToken(newRefreshToken),
-          expiresAt: newExpiresAt,
-        },
-      },
+          expiresAt: newExpiresAt
+        }
+      }
     );
 
     if (swap.matchedCount === 0) return null;

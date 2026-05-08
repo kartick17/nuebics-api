@@ -5,7 +5,7 @@ export const confirmSchema = z.object({
   fileName: z.string().min(1),
   fileType: z.string().min(1),
   fileSize: z.number().int().positive(),
-  folderId: z.string().nullable().optional(),
+  folderId: z.string().nullable().optional()
 });
 
 export type ConfirmInput = z.infer<typeof confirmSchema>;

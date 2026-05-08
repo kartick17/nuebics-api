@@ -5,7 +5,7 @@ export type RefreshTokenDocument = HydratedDocument<RefreshToken>;
 
 @Schema({
   timestamps: true,
-  collection: 'refresh_tokens',
+  collection: 'refresh_tokens'
 })
 export class RefreshToken {
   @Prop({ required: true, unique: true, index: true })

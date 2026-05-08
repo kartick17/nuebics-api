@@ -1,7 +1,7 @@
 import { HttpException } from '@nestjs/common';
 
 export function throwIfError<T>(
-  result: T,
+  result: T
 ): asserts result is Exclude<T, { error: string }> {
   if (
     result &&

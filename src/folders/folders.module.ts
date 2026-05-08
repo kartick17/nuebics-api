@@ -10,11 +10,11 @@ import { File, FileSchema } from '../shared/database/schemas/file.schema';
   imports: [
     MongooseModule.forFeature([
       { name: Folder.name, schema: FolderSchema },
-      { name: File.name, schema: FileSchema },
-    ]),
+      { name: File.name, schema: FileSchema }
+    ])
   ],
   controllers: [FoldersController],
   providers: [FoldersService, FoldersHelpers],
-  exports: [FoldersHelpers, MongooseModule],
+  exports: [FoldersHelpers, MongooseModule]
 })
 export class FoldersModule {}

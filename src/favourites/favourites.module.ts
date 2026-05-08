@@ -9,10 +9,10 @@ import { Folder, FolderSchema } from '../shared/database/schemas/folder.schema';
   imports: [
     MongooseModule.forFeature([
       { name: File.name, schema: FileSchema },
-      { name: Folder.name, schema: FolderSchema },
-    ]),
+      { name: Folder.name, schema: FolderSchema }
+    ])
   ],
   controllers: [FavouritesController],
-  providers: [FavouritesService],
+  providers: [FavouritesService]
 })
 export class FavouritesModule {}

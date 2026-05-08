@@ -31,12 +31,12 @@ describe('Auth — Happy', () => {
         email: 'new@test.local',
         phone: '+15550009999',
         password: 'Password123!',
-        confirmPassword: 'Password123!',
+        confirmPassword: 'Password123!'
       })
       .expect(201);
     expect(res.body).toEqual({
       ok: true,
-      message: 'Account created successfully',
+      message: 'Account created successfully'
     });
     expect(res.body).not.toHaveProperty('password');
     expect(res.body).not.toHaveProperty('passwordHash');
@@ -58,7 +58,7 @@ describe('Auth — Happy', () => {
       phone: userA.phone,
       isEmailVerified: false,
       isPhoneVerified: false,
-      vaultCredentialVerifier: false,
+      vaultCredentialVerifier: false
     });
     expect(res.headers['set-cookie']).toBeUndefined();
   });
@@ -91,7 +91,7 @@ describe('Auth — Happy', () => {
       phone: userA.phone,
       isEmailVerified: false,
       isPhoneVerified: false,
-      vaultCredentialVerifier: false,
+      vaultCredentialVerifier: false
     });
     expect(res.headers['set-cookie']).toBeUndefined();
   });
@@ -131,8 +131,8 @@ describe('Auth — Happy', () => {
         phone: userA.phone,
         isEmailVerified: false,
         isPhoneVerified: false,
-        vaultCredentialVerifier: false,
-      },
+        vaultCredentialVerifier: false
+      }
     });
   });
 });

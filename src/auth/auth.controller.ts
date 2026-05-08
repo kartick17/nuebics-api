@@ -1,5 +1,12 @@
 import {
-  Body, Controller, Get, HttpCode, Post, UnauthorizedException, UseGuards, UsePipes,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+  UsePipes
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -39,7 +46,7 @@ export class AuthController {
       message: 'Logged in successfully',
       user_details: toUserDetails(user),
       access_token: accessToken,
-      refresh_token: refreshToken,
+      refresh_token: refreshToken
     };
   }
 
@@ -56,7 +63,7 @@ export class AuthController {
       message: 'Token refreshed',
       user_details: toUserDetails(result.user),
       access_token: result.accessToken,
-      refresh_token: result.refreshToken,
+      refresh_token: result.refreshToken
     };
   }
 

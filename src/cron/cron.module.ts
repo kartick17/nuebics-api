@@ -4,6 +4,6 @@ import { FoldersModule } from '../folders/folders.module';
 
 @Module({
   imports: [FoldersModule],
-  controllers: [CronController],
+  controllers: [CronController]
 })
 export class CronModule {}

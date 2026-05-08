@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 export const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
   PORT: z.coerce.number().int().positive().default(3001),
 
   MONGODB_URI: z.string().min(1),
@@ -16,7 +18,7 @@ export const envSchema = z.object({
   AWS_S3_BUCKET_NAME: z.string().min(1),
 
   MAX_FILES: z.coerce.number().int().positive().default(50),
-  CRON_SECRET: z.string().min(1),
+  CRON_SECRET: z.string().min(1)
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -24,7 +26,6 @@ export type Env = z.infer<typeof envSchema>;
 export function validateEnv(raw: Record<string, unknown>): Env {
   const parsed = envSchema.safeParse(raw);
   if (!parsed.success) {
-    // eslint-disable-next-line no-console
     console.error('❌ Invalid environment:', parsed.error.format());
     throw new Error('Invalid environment configuration');
   }

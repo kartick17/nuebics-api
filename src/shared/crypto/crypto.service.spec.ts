@@ -20,15 +20,20 @@ describe('CryptoService — parity with Next.js source', () => {
     process.env.CRON_SECRET ||= 'x';
 
     const mod = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })],
-      providers: [CryptoService],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })
+      ],
+      providers: [CryptoService]
     }).compile();
     service = mod.get(CryptoService);
   });
 
   it('decrypts ciphertext produced by the Next.js implementation', () => {
     const plaintext = 'hello.world.jwt';
-    const cipher = CryptoJS.AES.encrypt(plaintext, process.env.CRYPTO_SECRET!).toString();
+    const cipher = CryptoJS.AES.encrypt(
+      plaintext,
+      process.env.CRYPTO_SECRET!
+    ).toString();
     expect(service.decryptToken(cipher)).toBe(plaintext);
   });
 
@@ -45,7 +50,7 @@ describe('CryptoService — parity with Next.js source', () => {
 
   it('signs an access JWT that verifies with the same secret via jose', async () => {
     const token = await service.signAccessToken('userA', 'sessionA');
-    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
+    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET);
     const { payload } = await jwtVerify(token, secret);
     expect(payload.userId).toBe('userA');
     expect(payload.sessionId).toBe('sessionA');
@@ -63,7 +68,7 @@ describe('CryptoService — parity with Next.js source', () => {
   });
 
   it('verifies a plain access JWT signed by a raw SignJWT call', async () => {
-    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
+    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET);
     const sourceToken = await new SignJWT({ userId: 'x', sessionId: 'y' })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()

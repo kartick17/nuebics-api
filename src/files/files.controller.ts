@@ -9,7 +9,7 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -31,7 +31,9 @@ export class FilesController {
   async upload(@CurrentUser() auth: TokenPayload, @Body() body: unknown) {
     const raw = body as Record<string, unknown>;
     if (!raw?.['fileName'] || !raw?.['fileType'] || !raw?.['fileSize']) {
-      throw new BadRequestException('fileName, fileType and fileSize are required');
+      throw new BadRequestException(
+        'fileName, fileType and fileSize are required'
+      );
     }
 
     const parsed = uploadSchema.safeParse(body);
@@ -39,7 +41,10 @@ export class FilesController {
       throw new BadRequestException(parsed.error.issues[0].message);
     }
 
-    const result = await this.filesService.presignUpload(auth.userId, parsed.data);
+    const result = await this.filesService.presignUpload(
+      auth.userId,
+      parsed.data
+    );
     throwIfError(result);
     return result;
   }
@@ -49,8 +54,15 @@ export class FilesController {
   @HttpCode(201)
   async confirm(@CurrentUser() auth: TokenPayload, @Body() body: unknown) {
     const raw = body as Record<string, unknown>;
-    if (!raw?.['key'] || !raw?.['fileName'] || !raw?.['fileType'] || !raw?.['fileSize']) {
-      throw new BadRequestException('key, fileName, fileType and fileSize are required');
+    if (
+      !raw?.['key'] ||
+      !raw?.['fileName'] ||
+      !raw?.['fileType'] ||
+      !raw?.['fileSize']
+    ) {
+      throw new BadRequestException(
+        'key, fileName, fileType and fileSize are required'
+      );
     }
 
     const parsed = confirmSchema.safeParse(body);
@@ -58,7 +70,10 @@ export class FilesController {
       throw new BadRequestException(parsed.error.issues[0].message);
     }
 
-    const result = await this.filesService.confirmUpload(auth.userId, parsed.data);
+    const result = await this.filesService.confirmUpload(
+      auth.userId,
+      parsed.data
+    );
     throwIfError(result);
     return { file: result.file };
   }
@@ -67,7 +82,7 @@ export class FilesController {
   @Get('files')
   async listFiles(
     @CurrentUser() auth: TokenPayload,
-    @Query('folderId') folderId: string | undefined,
+    @Query('folderId') folderId: string | undefined
   ) {
     const result = await this.filesService.listFiles(auth.userId, folderId);
     throwIfError(result);
@@ -79,7 +94,7 @@ export class FilesController {
   async updateFile(
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: unknown
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid file ID');
@@ -90,7 +105,11 @@ export class FilesController {
       throw new BadRequestException(parsed.error.issues[0].message);
     }
 
-    const result = await this.filesService.updateFile(auth.userId, id, parsed.data);
+    const result = await this.filesService.updateFile(
+      auth.userId,
+      id,
+      parsed.data
+    );
     throwIfError(result);
     return { file: result.file };
   }
@@ -112,20 +131,22 @@ export class FilesController {
   async toggleFavourite(
     @CurrentUser() auth: TokenPayload,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: unknown
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid file ID');
     }
 
-    if (typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean') {
+    if (
+      typeof (body as Record<string, unknown>)?.['isFavourite'] !== 'boolean'
+    ) {
       throw new BadRequestException('isFavourite must be a boolean');
     }
 
     const result = await this.filesService.toggleFavourite(
       auth.userId,
       id,
-      (body as Record<string, unknown>)['isFavourite'] as boolean,
+      (body as Record<string, unknown>)['isFavourite'] as boolean
     );
     throwIfError(result);
     return { file: result.file };

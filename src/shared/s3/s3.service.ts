@@ -7,7 +7,7 @@ import {
   HeadObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
-  HeadObjectCommandOutput,
+  HeadObjectCommandOutput
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Env } from '../../config/env.validation';
@@ -22,17 +22,25 @@ export class S3Service {
       region: config.get('AWS_REGION', { infer: true }),
       credentials: {
         accessKeyId: config.get('AWS_ACCESS_KEY_ID', { infer: true }),
-        secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY', { infer: true }),
-      },
+        secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY', { infer: true })
+      }
     });
     this.bucket = config.get('AWS_S3_BUCKET_NAME', { infer: true });
   }
 
-  presignPut(key: string, contentType: string, expiresIn = 300): Promise<string> {
+  presignPut(
+    key: string,
+    contentType: string,
+    expiresIn = 300
+  ): Promise<string> {
     return getSignedUrl(
       this.client,
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }),
-      { expiresIn },
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType
+      }),
+      { expiresIn }
     );
   }
 
@@ -40,16 +48,20 @@ export class S3Service {
     return getSignedUrl(
       this.client,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-      { expiresIn },
+      { expiresIn }
     );
   }
 
   head(key: string): Promise<HeadObjectCommandOutput> {
-    return this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+    return this.client.send(
+      new HeadObjectCommand({ Bucket: this.bucket, Key: key })
+    );
   }
 
   deleteOne(key: string) {
-    return this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    return this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key })
+    );
   }
 
   async deleteMany(keys: string[]) {
@@ -60,8 +72,8 @@ export class S3Service {
       await this.client.send(
         new DeleteObjectsCommand({
           Bucket: this.bucket,
-          Delete: { Objects: chunk.map((k) => ({ Key: k })), Quiet: true },
-        }),
+          Delete: { Objects: chunk.map((k) => ({ Key: k })), Quiet: true }
+        })
       );
     }
   }

@@ -4,7 +4,7 @@ import {
   Controller,
   Get,
   Patch,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { FavouritesService } from './favourites.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -24,7 +24,8 @@ export class FavouritesController {
   @Patch('bulk')
   async bulkToggle(
     @CurrentUser() auth: TokenPayload,
-    @Body() body: { fileIds?: unknown; folderIds?: unknown; isFavourite?: unknown },
+    @Body()
+    body: { fileIds?: unknown; folderIds?: unknown; isFavourite?: unknown }
   ) {
     const { fileIds = [], folderIds = [], isFavourite } = body;
 
@@ -34,7 +35,10 @@ export class FavouritesController {
     if (!Array.isArray(fileIds) || !Array.isArray(folderIds)) {
       throw new BadRequestException('fileIds and folderIds must be arrays');
     }
-    if ((fileIds as unknown[]).length === 0 && (folderIds as unknown[]).length === 0) {
+    if (
+      (fileIds as unknown[]).length === 0 &&
+      (folderIds as unknown[]).length === 0
+    ) {
       throw new BadRequestException('Provide at least one fileId or folderId');
     }
 
@@ -42,7 +46,7 @@ export class FavouritesController {
       auth.userId,
       fileIds as string[],
       folderIds as string[],
-      isFavourite,
+      isFavourite
     );
   }
 }

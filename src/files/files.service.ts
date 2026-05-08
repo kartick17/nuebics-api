@@ -4,7 +4,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { File, FileDocument } from '../shared/database/schemas/file.schema';
-import { Folder, FolderDocument } from '../shared/database/schemas/folder.schema';
+import {
+  Folder,
+  FolderDocument
+} from '../shared/database/schemas/folder.schema';
 import { S3Service } from '../shared/s3/s3.service';
 import type { Env } from '../config/env.validation';
 import type { UploadInput } from './dto/upload.schema';
@@ -15,9 +18,10 @@ import type { UpdateFileInput } from './dto/update-file.schema';
 export class FilesService {
   constructor(
     @InjectModel(File.name) private readonly fileModel: Model<FileDocument>,
-    @InjectModel(Folder.name) private readonly folderModel: Model<FolderDocument>,
+    @InjectModel(Folder.name)
+    private readonly folderModel: Model<FolderDocument>,
     private readonly s3: S3Service,
-    private readonly config: ConfigService<Env, true>,
+    private readonly config: ConfigService<Env, true>
   ) {}
 
   async presignUpload(userId: string, dto: UploadInput) {
@@ -42,7 +46,7 @@ export class FilesService {
     return {
       presignedUrl,
       key,
-      folderId: resolvedFolderId?.toString() ?? null,
+      folderId: resolvedFolderId?.toString() ?? null
     } as const;
   }
 
@@ -53,12 +57,18 @@ export class FilesService {
     try {
       headResult = await this.s3.head(key);
     } catch {
-      return { error: 'File not found in S3 — upload may have failed', status: 400 } as const;
+      return {
+        error: 'File not found in S3 — upload may have failed',
+        status: 400
+      } as const;
     }
 
     if (headResult.ContentLength !== fileSize) {
       await this.s3.deleteOne(key);
-      return { error: 'Upload appears incomplete — please try again', status: 400 } as const;
+      return {
+        error: 'Upload appears incomplete — please try again',
+        status: 400
+      } as const;
     }
 
     const file = await this.fileModel.create({
@@ -69,7 +79,7 @@ export class FilesService {
       type: fileType,
       folderId: folderId ? new Types.ObjectId(folderId) : null,
       status: 'active',
-      deletedAt: null,
+      deletedAt: null
     });
 
     return { file, status: 201 } as const;
@@ -99,7 +109,10 @@ export class FilesService {
     const { name, folderId } = dto;
 
     if (name === undefined && folderId === undefined) {
-      return { error: 'Nothing to update — provide name or folderId', status: 400 } as const;
+      return {
+        error: 'Nothing to update — provide name or folderId',
+        status: 400
+      } as const;
     }
 
     const file = await this.fileModel.findOne({ _id: id, userId });
@@ -112,7 +125,10 @@ export class FilesService {
         if (!Types.ObjectId.isValid(folderId)) {
           return { error: 'Invalid folderId', status: 400 } as const;
         }
-        const targetFolder = await this.folderModel.findOne({ _id: folderId, userId });
+        const targetFolder = await this.folderModel.findOne({
+          _id: folderId,
+          userId
+        });
         if (!targetFolder) {
           return { error: 'Target folder not found', status: 404 } as const;
         }
@@ -129,7 +145,11 @@ export class FilesService {
   }
 
   async deleteFile(userId: string, id: string) {
-    const file = await this.fileModel.findOne({ _id: id, userId, status: 'active' });
+    const file = await this.fileModel.findOne({
+      _id: id,
+      userId,
+      status: 'active'
+    });
     if (!file) {
       return { error: 'File not found', status: 404 } as const;
     }
@@ -145,7 +165,7 @@ export class FilesService {
     const file = await this.fileModel.findOneAndUpdate(
       { _id: id, userId, status: 'active' },
       { isFavourite },
-      { new: true },
+      { new: true }
     );
 
     if (!file) {

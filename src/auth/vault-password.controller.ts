@@ -1,4 +1,11 @@
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards
+} from '@nestjs/common';
 import { VaultPasswordService } from './vault-password.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -23,16 +30,20 @@ export class VaultPasswordController {
   @HttpCode(200)
   async set(
     @CurrentUser() auth: TokenPayload,
-    @Body(new ZodValidationPipe(setVaultPasswordSchema)) dto: SetVaultPasswordInput,
+    @Body(new ZodValidationPipe(setVaultPasswordSchema))
+    dto: SetVaultPasswordInput
   ) {
-    const result = await this.service.setVerifier(auth.userId, dto.encryptedToken);
+    const result = await this.service.setVerifier(
+      auth.userId,
+      dto.encryptedToken
+    );
     if (result.alreadySet) {
       return { ok: true, credentialChecker: result.credentialChecker };
     }
     return {
       ok: true,
       message: 'Vault password set successfully.',
-      user_details: toUserDetails(result.user),
+      user_details: toUserDetails(result.user)
     };
   }
 }
