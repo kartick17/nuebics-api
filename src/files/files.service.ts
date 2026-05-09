@@ -8,7 +8,7 @@ import {
   Folder,
   FolderDocument
 } from '../shared/database/schemas/folder.schema';
-import { S3Service } from '../shared/s3/s3.service';
+import { StratusService } from '../shared/stratus/stratus.service';
 import type { Env } from '../config/env.validation';
 import type { UploadInput } from './dto/upload.schema';
 import type { ConfirmInput } from './dto/confirm.schema';
@@ -20,7 +20,7 @@ export class FilesService {
     @InjectModel(File.name) private readonly fileModel: Model<FileDocument>,
     @InjectModel(Folder.name)
     private readonly folderModel: Model<FolderDocument>,
-    private readonly s3: S3Service,
+    private readonly stratus: StratusService,
     private readonly config: ConfigService<Env, true>
   ) {}
 
@@ -41,7 +41,7 @@ export class FilesService {
 
     const ext = fileName.split('.').pop();
     const key = `uploads/${userId}/${uuidv4()}.${ext}`;
-    const presignedUrl = await this.s3.presignPut(key, fileType, 300);
+    const presignedUrl = await this.stratus.presignPut(key, fileType, 300);
 
     return {
       presignedUrl,
@@ -53,9 +53,9 @@ export class FilesService {
   async confirmUpload(userId: string, dto: ConfirmInput) {
     const { key, fileName, fileType, fileSize, folderId } = dto;
 
-    let headResult: Awaited<ReturnType<typeof this.s3.head>>;
+    let headResult: Awaited<ReturnType<typeof this.stratus.head>>;
     try {
-      headResult = await this.s3.head(key);
+      headResult = await this.stratus.head(key);
     } catch {
       return {
         error: 'File not found in S3 — upload may have failed',
@@ -64,9 +64,17 @@ export class FilesService {
     }
 
     if (headResult.ContentLength !== fileSize) {
-      await this.s3.deleteOne(key);
+      await this.stratus.deleteOne(key);
       return {
         error: 'Upload appears incomplete — please try again',
+        status: 400
+      } as const;
+    }
+
+    if (headResult.ContentType !== fileType) {
+      await this.stratus.deleteOne(key);
+      return {
+        error: 'Upload content type mismatch',
         status: 400
       } as const;
     }
@@ -181,7 +189,7 @@ export class FilesService {
       return { error: 'File not found', status: 404 } as const;
     }
 
-    const url = await this.s3.presignGet(file.key, 300);
+    const url = await this.stratus.presignGet(file.key, 300);
     return { url } as const;
   }
 
