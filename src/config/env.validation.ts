@@ -17,6 +17,14 @@ export const envSchema = z.object({
   AWS_REGION: z.string().min(1),
   AWS_S3_BUCKET_NAME: z.string().min(1),
 
+  ZOHO_CLIENT_ID: z.string().min(1),
+  ZOHO_CLIENT_SECRET: z.string().min(1),
+  ZOHO_REFRESH_TOKEN: z.string().min(1),
+  ZOHO_PROJECT_ID: z.string().min(1),
+  ZOHO_PROJECT_KEY: z.string().min(1),
+  ZOHO_ENVIRONMENT: z.enum(['Development', 'Production']),
+  ZOHO_BUCKET_NAME: z.string().min(1),
+
   MAX_FILES: z.coerce.number().int().positive().default(50),
   CRON_SECRET: z.string().min(1)
 });
