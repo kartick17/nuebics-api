@@ -20,7 +20,7 @@ import {
   Folder,
   FolderDocument
 } from '../shared/database/schemas/folder.schema';
-import { S3Service } from '../shared/s3/s3.service';
+import { StratusService } from '../shared/stratus/stratus.service';
 import { FoldersHelpers } from '../folders/folders.helpers';
 import type { Env } from '../config/env.validation';
 
@@ -31,7 +31,7 @@ export class DownloadController {
     @InjectModel(File.name) private readonly fileModel: Model<FileDocument>,
     @InjectModel(Folder.name)
     private readonly folderModel: Model<FolderDocument>,
-    private readonly s3: S3Service,
+    private readonly stratus: StratusService,
     private readonly foldersHelpers: FoldersHelpers,
     private readonly config: ConfigService<Env, true>
   ) {}
@@ -156,7 +156,7 @@ export class DownloadController {
 
     const items = await Promise.all(
       files.map(async (file) => {
-        const url = await this.s3.presignGet(file.key, 300);
+        const url = await this.stratus.presignGet(file.key, 300);
         const prefix = pathMap.get(file._id.toString()) ?? '';
         const path = prefix ? `${prefix}/${file.name}` : file.name;
         return { id: file._id.toString(), name: file.name, path, url };
@@ -181,7 +181,7 @@ export class DownloadController {
       throw new NotFoundException('File not found');
     }
 
-    const url = await this.s3.presignGet(file.key, 300);
+    const url = await this.stratus.presignGet(file.key, 300);
     return { url };
   }
 }
