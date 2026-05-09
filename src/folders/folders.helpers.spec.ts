@@ -4,7 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { FoldersHelpers } from './folders.helpers';
 import { File } from '../shared/database/schemas/file.schema';
 import { Folder } from '../shared/database/schemas/folder.schema';
-import { S3Service } from '../shared/s3/s3.service';
+import { StratusService } from '../shared/stratus/stratus.service';
 import { validateEnv } from '../config/env.validation';
 
 describe('FoldersHelpers.isDescendantOf', () => {
@@ -51,7 +51,10 @@ describe('FoldersHelpers.isDescendantOf', () => {
         FoldersHelpers,
         { provide: getModelToken(File.name), useValue: {} },
         { provide: getModelToken(Folder.name), useValue: folderModelMock },
-        { provide: S3Service, useValue: { deleteMany: async () => undefined } }
+        {
+          provide: StratusService,
+          useValue: { deleteMany: async () => undefined }
+        }
       ]
     }).compile();
 

@@ -7,7 +7,7 @@ import {
   Folder,
   FolderDocument
 } from '../shared/database/schemas/folder.schema';
-import { S3Service } from '../shared/s3/s3.service';
+import { StratusService } from '../shared/stratus/stratus.service';
 import type { Env } from '../config/env.validation';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class FoldersHelpers {
     @InjectModel(File.name) private readonly fileModel: Model<FileDocument>,
     @InjectModel(Folder.name)
     private readonly folderModel: Model<FolderDocument>,
-    private readonly s3: S3Service,
+    private readonly stratus: StratusService,
     private readonly config: ConfigService<Env, true>
   ) {}
 
@@ -79,7 +79,7 @@ export class FoldersHelpers {
     const files = await this.fileModel
       .find({ userId, folderId: { $in: all } }, { _id: 1, key: 1 })
       .lean();
-    await this.s3.deleteMany(files.map((f) => f.key));
+    await this.stratus.deleteMany(files.map((f) => f.key));
     const fileResult = await this.fileModel.deleteMany({
       userId,
       folderId: { $in: all }
@@ -135,7 +135,7 @@ export class FoldersHelpers {
     const expiredFiles = await this.fileModel
       .find({ ...userFilter, status: 'trashed', deletedAt: { $lte: cutoff } })
       .lean();
-    await this.s3.deleteMany(expiredFiles.map((f) => f.key));
+    await this.stratus.deleteMany(expiredFiles.map((f) => f.key));
     const { deletedCount: df = 0 } = await this.fileModel.deleteMany({
       ...userFilter,
       status: 'trashed',
