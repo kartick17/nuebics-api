@@ -34,6 +34,13 @@ describe('FoldersHelpers.isDescendantOf', () => {
     process.env.AWS_SECRET_ACCESS_KEY ||= 'x';
     process.env.AWS_REGION ||= 'x';
     process.env.AWS_S3_BUCKET_NAME ||= 'x';
+    process.env.ZOHO_CLIENT_ID ||= 'x';
+    process.env.ZOHO_CLIENT_SECRET ||= 'x';
+    process.env.ZOHO_REFRESH_TOKEN ||= 'x';
+    process.env.ZOHO_PROJECT_ID ||= 'x';
+    process.env.ZOHO_PROJECT_KEY ||= 'x';
+    process.env.ZOHO_ENVIRONMENT ||= 'Development';
+    process.env.ZOHO_BUCKET_NAME ||= 'x';
     process.env.CRON_SECRET ||= 'x';
 
     const mod = await Test.createTestingModule({
