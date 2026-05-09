@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as catalyst from 'zcatalyst-sdk-node';
+import catalyst from 'zcatalyst-sdk-node';
 import type { Env } from '../../config/env.validation';
 
 @Injectable()
