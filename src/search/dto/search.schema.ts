@@ -6,7 +6,7 @@ export const searchSchema = z.object({
     .trim()
     .min(2, 'q must be at least 2 characters')
     .max(100, 'q must be at most 100 characters'),
-  page: z.coerce.number().int().min(1).default(1),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   includeTrashed: z
     .union([z.literal('true'), z.literal('false'), z.boolean()])

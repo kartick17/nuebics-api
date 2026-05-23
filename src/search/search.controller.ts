@@ -5,6 +5,7 @@ import {
   Query,
   UseGuards
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard, seconds } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { TokenPayload } from '../shared/crypto/crypto.service';
@@ -12,7 +13,8 @@ import { SearchService } from './search.service';
 import { searchSchema } from './dto/search.schema';
 
 @Controller('search')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ThrottlerGuard)
+@Throttle({ search: { limit: 30, ttl: seconds(60) } })
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
