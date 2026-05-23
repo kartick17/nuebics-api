@@ -12,6 +12,7 @@ import { FoldersModule } from './folders/folders.module';
 import { FilesModule } from './files/files.module';
 import { TrashModule } from './trash/trash.module';
 import { FavouritesModule } from './favourites/favourites.module';
+import { SearchModule } from './search/search.module';
 import { CronModule } from './cron/cron.module';
 import { HealthModule } from './health/health.module';
 
@@ -32,6 +33,7 @@ import { HealthModule } from './health/health.module';
     FilesModule,
     TrashModule,
     FavouritesModule,
+    SearchModule,
     CronModule
   ],
   controllers: [AppController],
