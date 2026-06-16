@@ -17,15 +17,13 @@ import {
   CryptoService,
   REFRESH_TOKEN_SECONDS
 } from '../shared/crypto/crypto.service';
+import { MailService } from '../shared/mail/mail.service';
+import { generateOtp } from './otp.util';
 import type { SignupInput } from './dto/signup.schema';
 import type { LoginInput } from './dto/login.schema';
 
 const DUMMY_HASH =
   '$2b$12$invalidhashfortimingprotection000000000000000000000000';
-
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -37,7 +35,8 @@ export class AuthService {
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     @InjectModel(RefreshToken.name)
     private readonly refreshTokenModel: Model<RefreshTokenDocument>,
-    private readonly crypto: CryptoService
+    private readonly crypto: CryptoService,
+    private readonly mail: MailService
   ) {}
 
   async signup(input: SignupInput): Promise<void> {
@@ -55,8 +54,8 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
-    const emailOTP = generateOTP();
-    const phoneOTP = generateOTP();
+    const emailOTP = generateOtp();
+    const phoneOTP = generateOtp();
 
     await this.userModel.create({
       name,
@@ -68,6 +67,10 @@ export class AuthService {
       phoneVerificationCode: phone ? phoneOTP : null,
       phoneVerificationExpires: phone ? expiry : null
     });
+
+    if (email) {
+      await this.mail.sendOtp(email, emailOTP, name);
+    }
   }
 
   async login(input: LoginInput): Promise<{

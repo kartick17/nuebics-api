@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { CryptoModule } from './shared/crypto/crypto.module';
 import { DatabaseModule } from './shared/database/database.module';
 import { S3Module } from './shared/s3/s3.module';
+import { MailModule } from './shared/mail/mail.module';
 import { throttlerConfig } from './throttler/throttler.config';
 import { FoldersModule } from './folders/folders.module';
 import { FilesModule } from './files/files.module';
@@ -26,6 +27,7 @@ import { HealthModule } from './health/health.module';
     HealthModule,
     CryptoModule,
     S3Module,
+    MailModule,
     throttlerConfig,
     AuthModule,
     FoldersModule,

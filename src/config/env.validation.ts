@@ -18,7 +18,19 @@ export const envSchema = z.object({
   AWS_S3_BUCKET_NAME: z.string().min(1),
 
   MAX_FILES: z.coerce.number().int().positive().default(50),
-  CRON_SECRET: z.string().min(1)
+  CRON_SECRET: z.string().min(1),
+
+  // SMTP — optional so dev/test setups without mail still boot.
+  // MailService warns and skips sending when host/user/pass are absent.
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASS: z.string().min(1).optional(),
+  MAIL_FROM: z.string().min(1).optional()
 });
 
 export type Env = z.infer<typeof envSchema>;

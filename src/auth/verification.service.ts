@@ -6,15 +6,14 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../shared/database/schemas/user.schema';
-
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+import { MailService } from '../shared/mail/mail.service';
+import { generateOtp } from './otp.util';
 
 @Injectable()
 export class VerificationService {
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<UserDocument>
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly mail: MailService
   ) {}
 
   async getEmailStatus(userId: string) {
@@ -69,15 +68,18 @@ export class VerificationService {
     if (channel === 'email') {
       if (!user.email) throw new BadRequestException('No email on account.');
       if (user.isEmailVerified) return { already: true };
-      user.emailVerificationCode = generateOTP();
+      const code = generateOtp();
+      user.emailVerificationCode = code;
       user.emailVerificationExpires = expiry;
+      await user.save();
+      await this.mail.sendOtp(user.email, code, user.name);
     } else {
       if (!user.phone) throw new BadRequestException('No phone on account.');
       if (user.isPhoneVerified) return { already: true };
-      user.phoneVerificationCode = generateOTP();
+      user.phoneVerificationCode = generateOtp();
       user.phoneVerificationExpires = expiry;
+      await user.save();
     }
-    await user.save();
     return { already: false };
   }
 }
