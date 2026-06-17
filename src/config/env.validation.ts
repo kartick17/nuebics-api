@@ -20,6 +20,14 @@ export const envSchema = z.object({
   MAX_FILES: z.coerce.number().int().positive().default(50),
   CRON_SECRET: z.string().min(1),
 
+  // Scheduled trash purge. CRON is a standard cron expression (default daily
+  // at 03:00). ENABLED defaults to true; set to "false" to turn the job off.
+  TRASH_PURGE_CRON: z.string().min(1).default('0 3 * * *'),
+  TRASH_PURGE_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false'),
+
   // SMTP — optional so dev/test setups without mail still boot.
   // MailService warns and skips sending when host/user/pass are absent.
   SMTP_HOST: z.string().min(1).optional(),
