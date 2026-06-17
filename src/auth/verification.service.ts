@@ -9,6 +9,11 @@ import { User, UserDocument } from '../shared/database/schemas/user.schema';
 import { MailService } from '../shared/mail/mail.service';
 import { generateOtp } from './otp.util';
 
+/** A code is expired only when an expiry is set and already in the past. */
+function isExpired(expires: Date | null | undefined): boolean {
+  return !!expires && expires.getTime() < Date.now();
+}
+
 @Injectable()
 export class VerificationService {
   constructor(
@@ -30,6 +35,10 @@ export class VerificationService {
     if (user.isEmailVerified) return { user, already: true };
     if (!user.emailVerificationCode)
       throw new BadRequestException('No verification code found.');
+    if (isExpired(user.emailVerificationExpires))
+      throw new BadRequestException(
+        'Verification code has expired. Please request a new one.'
+      );
     if (user.emailVerificationCode !== code)
       throw new BadRequestException('Invalid verification code.');
     user.isEmailVerified = true;
@@ -52,6 +61,10 @@ export class VerificationService {
     if (user.isPhoneVerified) return { user, already: true };
     if (!user.phoneVerificationCode)
       throw new BadRequestException('No OTP found.');
+    if (isExpired(user.phoneVerificationExpires))
+      throw new BadRequestException(
+        'OTP has expired. Please request a new one.'
+      );
     if (user.phoneVerificationCode !== code)
       throw new BadRequestException('Invalid OTP.');
     user.isPhoneVerified = true;
