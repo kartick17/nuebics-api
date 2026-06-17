@@ -48,29 +48,31 @@ export class VerificationController {
     };
   }
 
-  @Get('verify-phone')
-  getPhone(@CurrentUser() auth: TokenPayload) {
-    return this.verification.getPhoneStatus(auth.userId);
-  }
+  // Phone verification is disabled until we have an SMS provider to deliver
+  // the OTP. Re-enable these endpoints once SMS sending is wired up.
+  // @Get('verify-phone')
+  // getPhone(@CurrentUser() auth: TokenPayload) {
+  //   return this.verification.getPhoneStatus(auth.userId);
+  // }
 
-  @Post('verify-phone')
-  @HttpCode(200)
-  async verifyPhone(
-    @CurrentUser() auth: TokenPayload,
-    @Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpInput
-  ) {
-    const { user, already } = await this.verification.verifyPhone(
-      auth.userId,
-      dto.code
-    );
-    return {
-      ok: true,
-      message: already
-        ? 'Phone already verified.'
-        : 'Phone verified successfully.',
-      user_details: toUserDetails(user)
-    };
-  }
+  // @Post('verify-phone')
+  // @HttpCode(200)
+  // async verifyPhone(
+  //   @CurrentUser() auth: TokenPayload,
+  //   @Body(new ZodValidationPipe(verifyOtpSchema)) dto: VerifyOtpInput
+  // ) {
+  //   const { user, already } = await this.verification.verifyPhone(
+  //     auth.userId,
+  //     dto.code
+  //   );
+  //   return {
+  //     ok: true,
+  //     message: already
+  //       ? 'Phone already verified.'
+  //       : 'Phone verified successfully.',
+  //     user_details: toUserDetails(user)
+  //   };
+  // }
 
   @Post('resend-otp')
   @HttpCode(200)
@@ -85,10 +87,7 @@ export class VerificationController {
       dto.channel
     );
     return already
-      ? {
-          ok: true,
-          message: `${dto.channel === 'email' ? 'Email' : 'Phone'} already verified.`
-        }
+      ? { ok: true, message: 'Email already verified.' }
       : { ok: true, message: 'Verification code sent.' };
   }
 }

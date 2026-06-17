@@ -13,10 +13,11 @@ async function readEmailOtp(email: string): Promise<string> {
   return user!.emailVerificationCode as string;
 }
 
-async function readPhoneOtp(phone: string): Promise<string> {
-  const user = await mongoose.connection.collection('users').findOne({ phone });
-  return user!.phoneVerificationCode as string;
-}
+// Phone verification is disabled until we have an SMS provider.
+// async function readPhoneOtp(phone: string): Promise<string> {
+//   const user = await mongoose.connection.collection('users').findOne({ phone });
+//   return user!.phoneVerificationCode as string;
+// }
 
 beforeAll(async () => {
   await connectTestDb();
@@ -55,27 +56,28 @@ describe('Verification — Happy', () => {
     expect(res.headers['set-cookie']).toBeUndefined();
   });
 
-  it('VER-HAPPY-003: GET /auth/verify-phone returns status', async () => {
-    const session = await loginUser(app, userA);
-    const res = await authed(app, session)
-      .get('/api/auth/verify-phone')
-      .expect(200);
-    expect(res.body).toEqual({ phone: userA.phone, isVerified: false });
-  });
-
-  it('VER-HAPPY-004: POST /auth/verify-phone with valid code → verified', async () => {
-    const session = await loginUser(app, userA);
-    const code = await readPhoneOtp(userA.phone);
-    const res = await authed(app, session)
-      .post('/api/auth/verify-phone')
-      .send({ code })
-      .expect(200);
-    expect(res.body.ok).toBe(true);
-    expect(res.body.message).toBe('Phone verified successfully.');
-    expect(res.body.user_details.isPhoneVerified).toBe(true);
-    expect(res.body.user_details.phone).toBe(userA.phone);
-    expect(res.headers['set-cookie']).toBeUndefined();
-  });
+  // Phone verification is disabled until we have an SMS provider.
+  // it('VER-HAPPY-003: GET /auth/verify-phone returns status', async () => {
+  //   const session = await loginUser(app, userA);
+  //   const res = await authed(app, session)
+  //     .get('/api/auth/verify-phone')
+  //     .expect(200);
+  //   expect(res.body).toEqual({ phone: userA.phone, isVerified: false });
+  // });
+  //
+  // it('VER-HAPPY-004: POST /auth/verify-phone with valid code → verified', async () => {
+  //   const session = await loginUser(app, userA);
+  //   const code = await readPhoneOtp(userA.phone);
+  //   const res = await authed(app, session)
+  //     .post('/api/auth/verify-phone')
+  //     .send({ code })
+  //     .expect(200);
+  //   expect(res.body.ok).toBe(true);
+  //   expect(res.body.message).toBe('Phone verified successfully.');
+  //   expect(res.body.user_details.isPhoneVerified).toBe(true);
+  //   expect(res.body.user_details.phone).toBe(userA.phone);
+  //   expect(res.headers['set-cookie']).toBeUndefined();
+  // });
 
   it('VER-HAPPY-005: POST /auth/resend-otp email → sent', async () => {
     const session = await loginUser(app, userA);

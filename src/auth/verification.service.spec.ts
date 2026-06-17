@@ -88,29 +88,31 @@ describe('VerificationService — OTP expiry', () => {
     });
   });
 
-  describe('verifyPhone', () => {
-    it('rejects an expired OTP without verifying', async () => {
-      const user = makeUser({
-        phoneVerificationExpires: new Date(Date.now() - MINUTE)
-      });
-      findById.mockResolvedValue(user);
-
-      await expect(service.verifyPhone('id', '654321')).rejects.toThrow(
-        /expired/i
-      );
-      expect(user.isPhoneVerified).toBe(false);
-      expect(user.save).not.toHaveBeenCalled();
-    });
-
-    it('accepts an OTP that has not expired', async () => {
-      const user = makeUser();
-      findById.mockResolvedValue(user);
-
-      const res = await service.verifyPhone('id', '654321');
-
-      expect(res.already).toBe(false);
-      expect(user.isPhoneVerified).toBe(true);
-      expect(user.save).toHaveBeenCalledTimes(1);
-    });
-  });
+  // Phone verification is disabled until we have an SMS provider. Re-enable
+  // these tests alongside VerificationService.verifyPhone.
+  // describe('verifyPhone', () => {
+  //   it('rejects an expired OTP without verifying', async () => {
+  //     const user = makeUser({
+  //       phoneVerificationExpires: new Date(Date.now() - MINUTE)
+  //     });
+  //     findById.mockResolvedValue(user);
+  //
+  //     await expect(service.verifyPhone('id', '654321')).rejects.toThrow(
+  //       /expired/i
+  //     );
+  //     expect(user.isPhoneVerified).toBe(false);
+  //     expect(user.save).not.toHaveBeenCalled();
+  //   });
+  //
+  //   it('accepts an OTP that has not expired', async () => {
+  //     const user = makeUser();
+  //     findById.mockResolvedValue(user);
+  //
+  //     const res = await service.verifyPhone('id', '654321');
+  //
+  //     expect(res.already).toBe(false);
+  //     expect(user.isPhoneVerified).toBe(true);
+  //     expect(user.save).toHaveBeenCalledTimes(1);
+  //   });
+  // });
 });

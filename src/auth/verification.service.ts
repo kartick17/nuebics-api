@@ -47,33 +47,35 @@ export class VerificationService {
     return { user, already: false };
   }
 
-  async getPhoneStatus(userId: string) {
-    const user = await this.userModel
-      .findById(userId)
-      .select('phone isPhoneVerified');
-    if (!user) throw new NotFoundException('User not found.');
-    return { phone: user.phone, isVerified: user.isPhoneVerified || false };
-  }
+  // Phone verification is disabled until we have an SMS provider to deliver the
+  // OTP. Re-enable getPhoneStatus and verifyPhone once SMS sending is wired up.
+  // async getPhoneStatus(userId: string) {
+  //   const user = await this.userModel
+  //     .findById(userId)
+  //     .select('phone isPhoneVerified');
+  //   if (!user) throw new NotFoundException('User not found.');
+  //   return { phone: user.phone, isVerified: user.isPhoneVerified || false };
+  // }
+  //
+  // async verifyPhone(userId: string, code: string) {
+  //   const user = await this.userModel.findById(userId);
+  //   if (!user) throw new NotFoundException('User not found.');
+  //   if (user.isPhoneVerified) return { user, already: true };
+  //   if (!user.phoneVerificationCode)
+  //     throw new BadRequestException('No OTP found.');
+  //   if (isExpired(user.phoneVerificationExpires))
+  //     throw new BadRequestException(
+  //       'OTP has expired. Please request a new one.'
+  //     );
+  //   if (user.phoneVerificationCode !== code)
+  //     throw new BadRequestException('Invalid OTP.');
+  //   user.isPhoneVerified = true;
+  //   user.phoneVerificationCode = null;
+  //   await user.save();
+  //   return { user, already: false };
+  // }
 
-  async verifyPhone(userId: string, code: string) {
-    const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('User not found.');
-    if (user.isPhoneVerified) return { user, already: true };
-    if (!user.phoneVerificationCode)
-      throw new BadRequestException('No OTP found.');
-    if (isExpired(user.phoneVerificationExpires))
-      throw new BadRequestException(
-        'OTP has expired. Please request a new one.'
-      );
-    if (user.phoneVerificationCode !== code)
-      throw new BadRequestException('Invalid OTP.');
-    user.isPhoneVerified = true;
-    user.phoneVerificationCode = null;
-    await user.save();
-    return { user, already: false };
-  }
-
-  async resendOtp(userId: string, channel: 'email' | 'phone') {
+  async resendOtp(userId: string, channel: 'email') {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('User not found.');
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
@@ -86,13 +88,15 @@ export class VerificationService {
       user.emailVerificationExpires = expiry;
       await user.save();
       await this.mail.sendOtp(user.email, code, user.name);
-    } else {
-      if (!user.phone) throw new BadRequestException('No phone on account.');
-      if (user.isPhoneVerified) return { already: true };
-      user.phoneVerificationCode = generateOtp();
-      user.phoneVerificationExpires = expiry;
-      await user.save();
     }
+    // Phone channel is disabled until we have an SMS provider:
+    // else {
+    //   if (!user.phone) throw new BadRequestException('No phone on account.');
+    //   if (user.isPhoneVerified) return { already: true };
+    //   user.phoneVerificationCode = generateOtp();
+    //   user.phoneVerificationExpires = expiry;
+    //   await user.save();
+    // }
     return { already: false };
   }
 }

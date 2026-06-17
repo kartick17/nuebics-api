@@ -55,7 +55,9 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, 12);
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
     const emailOTP = generateOtp();
-    const phoneOTP = generateOtp();
+    // Phone OTP is disabled until we have an SMS provider to deliver it.
+    // The phone number is still stored, just not verified.
+    // const phoneOTP = generateOtp();
 
     await this.userModel.create({
       name,
@@ -63,9 +65,9 @@ export class AuthService {
       phone: phone || undefined,
       passwordHash,
       emailVerificationCode: email ? emailOTP : null,
-      emailVerificationExpires: email ? expiry : null,
-      phoneVerificationCode: phone ? phoneOTP : null,
-      phoneVerificationExpires: phone ? expiry : null
+      emailVerificationExpires: email ? expiry : null
+      // phoneVerificationCode: phone ? phoneOTP : null,
+      // phoneVerificationExpires: phone ? expiry : null
     });
 
     if (email) {
